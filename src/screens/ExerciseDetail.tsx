@@ -1,7 +1,8 @@
 import { EXERCISES } from '../data/exercises'
 import { PATTERNS, getCoaching } from '../data/coaching'
-import { describeTarget } from '../engine/progression'
+import { targetParts } from '../engine/progression'
 import { useStore } from '../state/store'
+import ExerciseDemo from '../components/ExerciseDemo'
 
 function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -20,6 +21,7 @@ export default function ExerciseDetail({
   if (!ex || !info) return null
   const p = PATTERNS[info.pattern]
   const muscles = [cap(ex.primary), ...info.secondary]
+  const t = targetParts(exerciseId, state.progress, state.profile?.units ?? 'kg')
 
   return (
     <div className="frame push">
@@ -34,16 +36,29 @@ export default function ExerciseDetail({
         <h1 className="h1">{ex.name}</h1>
         <p className="muted">{info.summary}</p>
 
+        <div style={{ marginTop: 4 }}>
+          <ExerciseDemo exerciseId={exerciseId} label={ex.name} clipOnly />
+        </div>
+
         <div className="tags">
           <span className="pill">{info.difficulty}</span>
           <span className="pill">{ex.type}</span>
-          <span className="pill">
-            {describeTarget(
-              exerciseId,
-              state.progress,
-              state.profile?.units ?? 'kg'
-            )}
-          </span>
+          {t && (
+            <>
+              <span className="pill">{t.sets} sets</span>
+              <span className="pill">
+                {t.reps}
+                {t.isTime ? 's hold' : ' reps'}
+              </span>
+              {t.bodyweight ? (
+                <span className="pill">Bodyweight</span>
+              ) : t.weight != null ? (
+                <span className="pill">
+                  {t.weight} {t.units}
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
 
         <div className="section">

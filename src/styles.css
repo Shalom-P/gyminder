@@ -537,6 +537,20 @@ input {
 }
 
 /* ---- Session progress ---- */
+/* Cap the workout screen to the viewport and let its body scroll, so the
+   action buttons stay reachable on shorter devices once the demo photo +
+   set-up chips + focus cue are stacked in. The spacer still pins the actions
+   to the bottom when everything fits. */
+.frame.session {
+  height: 100dvh;
+}
+
+.frame.session .body {
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
 .session-head {
   display: flex;
   align-items: center;
@@ -613,27 +627,104 @@ input {
   }
 }
 
-/* Target card (between sets) */
+/* Target card (between sets) — labelled Sets / Reps / Weight, no shorthand */
 .target-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  padding: 18px 20px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
-.target-card .lbl {
-  font-size: 12px;
+.target-stats {
+  display: flex;
+  align-items: stretch;
+}
+
+.tstat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+.tstat-lbl {
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tstat-val {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.tstat-unit {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.tstat-bw {
+  font-size: 24px;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+.tstat-count .tstat-lbl {
   color: var(--accent);
 }
 
-.target-card .big-num {
-  font-size: 40px;
+.tstat-count .tstat-val {
+  color: var(--accent);
+  animation: countPop 0.34s var(--ease) both;
+}
+
+.tstat-of {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+@keyframes countPop {
+  from {
+    transform: scale(0.7);
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tstat-count .tstat-val {
+    animation: none;
+  }
+}
+
+.tstat-div {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 4px 0;
+}
+
+.target-card .note {
+  margin: 0;
 }
 
 /* Rest panel — the hero while resting */
@@ -715,7 +806,14 @@ input {
 }
 
 /* Looping exercise demo, played by default on the workout screen. */
+.demo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
 .demo-stage {
+  position: relative;
   background: radial-gradient(
     circle at 50% 42%,
     #232a36 0%,
@@ -724,8 +822,8 @@ input {
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   height: 23vh;
-  min-height: 150px;
-  max-height: 210px;
+  min-height: 158px;
+  max-height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -736,6 +834,139 @@ input {
   height: 100%;
   width: auto;
   max-width: 100%;
+}
+
+/* "↻ Looping demo" corner tag */
+.demo-tag {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Real-photo looping demo (public-domain free-exercise-db) */
+.demo-stage-photo {
+  background: #eef0f3;
+}
+
+.demo-photos {
+  position: absolute;
+  inset: 0;
+}
+
+.demo-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.demo-photo-b {
+  animation: demoFade 2.6s ease-in-out infinite;
+}
+
+@keyframes demoFade {
+  0%,
+  16% {
+    opacity: 0;
+  }
+  46%,
+  70% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-photo-b {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.demo-stage-photo .demo-tag {
+  color: #3a3f49;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Accurate cues surfaced around the demo */
+.demo-setup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.demo-setup li {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  padding: 5px 10px 5px 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.25;
+}
+
+.demo-setup li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  flex: none;
+}
+
+.demo-focus {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  background: linear-gradient(
+    180deg,
+    rgba(125, 211, 252, 0.1),
+    rgba(125, 211, 252, 0.04)
+  );
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: var(--r-md);
+  padding: 11px 13px;
+}
+
+.demo-focus-k {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex: none;
+}
+
+.demo-focus-v {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
 }
 
 .exa line {

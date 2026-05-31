@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
-import { describeTarget, restSeconds } from '../engine/progression'
-import ExerciseAnimation from '../components/ExerciseAnimation'
+import { targetParts, restSeconds } from '../engine/progression'
+import ExerciseDemo from '../components/ExerciseDemo'
 
 function mmss(sec: number) {
   const m = Math.floor(sec / 60)
@@ -102,7 +102,7 @@ export default function Session({
   }
 
   return (
-    <div className="frame push">
+    <div className="frame push session">
       <div className="session-head">
         <button className="icon-btn" onClick={quit} aria-label="Quit workout">
           ✕
@@ -145,21 +145,53 @@ export default function Session({
           </div>
         ) : (
           <div className="target-card" aria-live="polite">
-            <span className="lbl">
-              Set {setIdx + 1} of {totalSets}
-            </span>
-            <div className="big-num">
-              {describeTarget(item.exerciseId, state.progress, units)}
-            </div>
+            {(() => {
+              const t = targetParts(item.exerciseId, state.progress, units)
+              if (!t) return null
+              const setsLeft = t.sets - setIdx
+              return (
+                <div
+                  className="target-stats"
+                  role="group"
+                  aria-label={`Set ${setIdx + 1} of ${t.sets}, ${setsLeft} left · ${t.reps}${t.isTime ? ' second hold' : ' reps'}${t.bodyweight ? ', bodyweight' : t.weight != null ? `, ${t.weight} ${t.units}` : ''}`}
+                >
+                  <div className="tstat tstat-count">
+                    <span className="tstat-lbl">Sets left</span>
+                    <span className="tstat-val" key={setsLeft}>
+                      {setsLeft}
+                      <span className="tstat-of">/{t.sets}</span>
+                    </span>
+                  </div>
+                  <div className="tstat-div" aria-hidden="true" />
+                  <div className="tstat">
+                    <span className="tstat-lbl">{t.isTime ? 'Hold' : 'Reps'}</span>
+                    <span className="tstat-val">
+                      {t.reps}
+                      {t.isTime && <span className="tstat-unit">s</span>}
+                    </span>
+                  </div>
+                  <div className="tstat-div" aria-hidden="true" />
+                  <div className="tstat">
+                    <span className="tstat-lbl">Weight</span>
+                    {t.bodyweight ? (
+                      <span className="tstat-val tstat-bw">Body</span>
+                    ) : t.weight != null ? (
+                      <span className="tstat-val">
+                        {t.weight}
+                        <span className="tstat-unit">{t.units}</span>
+                      </span>
+                    ) : (
+                      <span className="tstat-val tstat-bw">—</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
             {item.note && <div className="note">{item.note}</div>}
           </div>
         )}
 
-        {info && (
-          <div className="demo-stage">
-            <ExerciseAnimation exerciseId={item.exerciseId} label={ex?.name} />
-          </div>
-        )}
+        {info && <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} />}
 
         <button
           className="btn ghost"
