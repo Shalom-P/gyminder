@@ -11,7 +11,7 @@ export default function Complete({ onHome }: { onHome: () => void }) {
   const now = Date.now()
 
   return (
-    <div className="frame">
+    <div className="frame push">
       <div className="top">
         <span className="brand">Workout complete</span>
         <span />

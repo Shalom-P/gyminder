@@ -6,7 +6,7 @@ import {
   relativeTime,
   upcomingDay
 } from '../engine/schedule'
-import { BrandMark, GearIcon } from '../components/icons'
+import { BrandMark } from '../components/icons'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -17,11 +17,9 @@ function greeting(): string {
 
 export default function Home({
   onStart,
-  onSettings,
   onPick
 }: {
   onStart: () => void
-  onSettings: () => void
   onPick: () => void
 }) {
   const { state, start } = useStore()
@@ -49,15 +47,16 @@ export default function Home({
   }
 
   return (
-    <div className="frame">
+    <div className="frame tabbed">
       <div className="top">
         <span className="brand">
           <BrandMark />
           Gyminder
         </span>
-        <button className="icon-btn" onClick={onSettings} aria-label="Settings">
-          <GearIcon />
-        </button>
+        <span className="pill" style={{ alignSelf: 'center' }}>
+          <span className="dot" style={{ background: 'var(--accent)' }} />
+          {state.history.length} logged
+        </span>
       </div>
 
       <div className="body">

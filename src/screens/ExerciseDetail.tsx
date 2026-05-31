@@ -22,7 +22,7 @@ export default function ExerciseDetail({
   const muscles = [cap(ex.primary), ...info.secondary]
 
   return (
-    <div className="frame">
+    <div className="frame push">
       <div className="top">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
           ✕

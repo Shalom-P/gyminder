@@ -19,7 +19,7 @@ export default function ModeSelect({
   }
 
   return (
-    <div className="frame">
+    <div className="frame push">
       <div className="top">
         <span className="brand">Training mode</span>
         {onBack ? (

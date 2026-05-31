@@ -102,7 +102,7 @@ export default function Session({
   }
 
   return (
-    <div className="frame">
+    <div className="frame push">
       <div className="session-head">
         <button className="icon-btn" onClick={quit} aria-label="Quit workout">
           ✕

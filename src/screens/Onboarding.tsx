@@ -94,7 +94,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="frame">
+    <div className="frame push" key={step}>
       <div className="top">
         <span className="brand">Gyminder setup</span>
         <div className="dots">

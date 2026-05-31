@@ -38,3 +38,40 @@ export function CheckIcon() {
     </svg>
   )
 }
+
+/* ---- Tab-bar icons (active prop thickens the stroke) ---- */
+export function HomeIcon({ active }: { active?: boolean }) {
+  const sw = active ? 2.4 : 2
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 11l8-6.5L20 11"
+        stroke="currentColor"
+        strokeWidth={sw}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v9h12v-9"
+        stroke="currentColor"
+        strokeWidth={sw}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function DumbbellIcon({ active }: { active?: boolean }) {
+  const sw = active ? 2.4 : 2
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 9.5v5M6 7v10M18 7v10M21 9.5v5M6 12h12"
+        stroke="currentColor"
+        strokeWidth={sw}
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

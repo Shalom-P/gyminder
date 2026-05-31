@@ -20,24 +20,23 @@ function cap(s: string) {
 }
 
 export default function Library({
-  onBack,
   onOpen
 }: {
-  onBack: () => void
   onOpen: (exerciseId: string) => void
 }) {
   const all = Object.values(EXERCISES)
 
   return (
-    <div className="frame">
+    <div className="frame tabbed">
       <div className="top">
-        <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ✕
-        </button>
         <span className="brand">Exercise library</span>
+        <span />
       </div>
 
       <div className="body scroll">
+        <h1 className="h1" style={{ marginBottom: 2 }}>
+          Exercises
+        </h1>
         <p className="muted">
           {all.length} exercises with animated demos, form cues and common
           mistakes. Tap any to learn it.

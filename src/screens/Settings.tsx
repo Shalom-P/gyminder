@@ -2,27 +2,26 @@ import { useStore } from '../state/store'
 import { getActiveSplit } from '../data/splits'
 
 export default function Settings({
-  onBack,
-  onChangeMode,
-  onLibrary
+  onChangeMode
 }: {
-  onBack: () => void
   onChangeMode: () => void
-  onLibrary: () => void
 }) {
   const { state, resetAll, redoSetup } = useStore()
   const split = getActiveSplit(state)
+  const p = state.profile
 
   return (
-    <div className="frame">
+    <div className="frame tabbed">
       <div className="top">
-        <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ✕
-        </button>
         <span className="brand">Settings</span>
+        <span />
       </div>
 
-      <div className="body">
+      <div className="body scroll">
+        <h1 className="h1" style={{ marginBottom: 4 }}>
+          Settings
+        </h1>
+
         <div className="card">
           <span className="muted">Current mode</span>
           <h2 className="h2">{split?.name ?? '—'}</h2>
@@ -31,14 +30,20 @@ export default function Settings({
           </span>
         </div>
 
+        <div className="card">
+          <span className="label">Your profile</span>
+          <span className="muted" style={{ textTransform: 'capitalize' }}>
+            {p
+              ? `${p.experience} · ${p.goal} · ${p.daysPerWeek} days · ${p.equipment} · ${p.units ?? 'kg'}`
+              : '—'}
+          </span>
+        </div>
+
         <div className="spacer" />
 
         <div className="actions">
           <button className="btn primary" onClick={onChangeMode}>
             Change training mode
-          </button>
-          <button className="btn" onClick={onLibrary}>
-            Exercise library
           </button>
           <button
             className="btn"

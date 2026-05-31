@@ -10,6 +10,7 @@ import ExerciseDetail from './screens/ExerciseDetail'
 import Library from './screens/Library'
 import ScheduleBuilder from './screens/ScheduleBuilder'
 import WorkoutPicker from './screens/WorkoutPicker'
+import TabBar, { type TabId } from './components/TabBar'
 
 type View =
   | 'home'
@@ -21,6 +22,12 @@ type View =
   | 'detail'
   | 'builder'
   | 'pick'
+
+const TAB_VIEWS: Record<string, true> = {
+  home: true,
+  library: true,
+  settings: true
+}
 
 export default function App() {
   const { state } = useStore()
@@ -34,100 +41,87 @@ export default function App() {
     setView('detail')
   }
 
-  if (!state.profile) return <Onboarding />
+  let content: React.ReactNode
+  let showTabs = false
 
-  if (view === 'builder') {
-    return (
+  if (!state.profile) {
+    content = <Onboarding />
+  } else if (view === 'builder') {
+    content = (
       <ScheduleBuilder
         onBack={() => setView('mode')}
         onDone={() => setView('home')}
       />
     )
-  }
-
-  if (!state.currentSplitId) {
-    return (
+  } else if (!state.currentSplitId) {
+    content = (
       <ModeSelect
         onPicked={() => setView('home')}
         onBuild={() => setView('builder')}
       />
     )
-  }
-
-  if (view === 'detail' && detailId) {
-    return (
+  } else if (view === 'detail' && detailId) {
+    content = (
       <ExerciseDetail
         exerciseId={detailId}
         onBack={() => setView(detailReturn)}
       />
     )
-  }
-
-  if (view === 'library') {
-    return (
-      <Library
-        onBack={() => setView('settings')}
-        onOpen={(id) => openDetail(id, 'library')}
-      />
-    )
-  }
-
-  if (view === 'pick') {
-    return (
+  } else if (view === 'pick') {
+    content = (
       <WorkoutPicker
         onBack={() => setView('home')}
         onStarted={() => setView('session')}
       />
     )
-  }
-
-  if (view === 'session') {
-    if (!state.active)
-      return (
-        <Home
-          onStart={() => setView('session')}
-          onSettings={() => setView('settings')}
-          onPick={() => setView('pick')}
+  } else if (view === 'session') {
+    if (!state.active) {
+      showTabs = true
+      content = (
+        <Home onStart={() => setView('session')} onPick={() => setView('pick')} />
+      )
+    } else {
+      content = (
+        <Session
+          onComplete={() => setView('complete')}
+          onQuit={() => setView('home')}
+          onShowHow={(id) => openDetail(id, 'session')}
         />
       )
-    return (
-      <Session
-        onComplete={() => setView('complete')}
-        onQuit={() => setView('home')}
-        onShowHow={(id) => openDetail(id, 'session')}
-      />
-    )
-  }
-
-  if (view === 'complete') {
-    return <Complete onHome={() => setView('home')} />
-  }
-
-  if (view === 'settings') {
-    return (
-      <Settings
-        onBack={() => setView('home')}
-        onChangeMode={() => setView('mode')}
-        onLibrary={() => setView('library')}
-      />
-    )
-  }
-
-  if (view === 'mode') {
-    return (
+    }
+  } else if (view === 'complete') {
+    content = <Complete onHome={() => setView('home')} />
+  } else if (view === 'mode') {
+    content = (
       <ModeSelect
         onBack={() => setView('home')}
         onPicked={() => setView('home')}
         onBuild={() => setView('builder')}
       />
     )
+  } else if (view === 'library') {
+    showTabs = true
+    content = <Library onOpen={(id) => openDetail(id, 'library')} />
+  } else if (view === 'settings') {
+    showTabs = true
+    content = <Settings onChangeMode={() => setView('mode')} />
+  } else {
+    showTabs = true
+    content = (
+      <Home onStart={() => setView('session')} onPick={() => setView('pick')} />
+    )
   }
 
+  // Which tab is highlighted — none while an active session is on screen.
+  const activeTab: TabId | null =
+    view === 'session' && state.active
+      ? null
+      : ((TAB_VIEWS[view] ? view : 'home') as TabId)
+
   return (
-    <Home
-      onStart={() => setView('session')}
-      onSettings={() => setView('settings')}
-      onPick={() => setView('pick')}
-    />
+    <div className={`app${showTabs ? ' has-tabbar' : ''}`}>
+      {content}
+      {showTabs && <TabBar active={activeTab} onSelect={(id) => setView(id)} />}
+    </div>
   )
 }

@@ -23,7 +23,7 @@ export default function WorkoutPicker({
   }
 
   return (
-    <div className="frame">
+    <div className="frame push">
       <div className="top">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
           ✕

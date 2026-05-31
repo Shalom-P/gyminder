@@ -84,15 +84,33 @@ input {
   animation: screenIn 0.34s var(--ease) both;
 }
 
+/* Tab-shell screens leave room for the fixed bottom tab bar. */
+.frame.tabbed {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
+}
+
+/* Transform-only entrance so content is always visible (never stranded
+   at opacity:0 if the animation clock is paused). */
 @keyframes screenIn {
   from {
-    opacity: 0;
     transform: translateY(10px);
   }
 }
 
+/* Push transition for modal-ish screens (session, detail, onboarding…). */
+.frame.push {
+  animation: pushIn 0.32s var(--ease) both;
+}
+
+@keyframes pushIn {
+  from {
+    transform: translateX(26px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .frame {
+  .frame,
+  .frame.push {
     animation: none;
   }
 }
@@ -853,4 +871,68 @@ input {
   color: var(--faint);
   font-weight: 700;
   margin: 16px 0 8px;
+}
+
+/* ---- Bottom tab bar (native iOS navigation pattern) ---- */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 8px 14px calc(env(safe-area-inset-bottom) + 12px);
+  /* solid fallback first, translucent blur where supported */
+  background: rgba(8, 9, 12, 0.82);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-top: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 2px;
+  color: var(--faint);
+  transition: color 0.2s var(--ease), transform 0.1s var(--ease);
+}
+
+.tab .ti {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.tab .ti svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.tab .tl {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tab.active {
+  color: var(--accent);
+}
+
+.tab:active {
+  transform: scale(0.94);
 }
