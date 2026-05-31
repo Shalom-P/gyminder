@@ -167,3 +167,36 @@ export function describeTarget(
         : '@ —'
   return `${ex.sets} × ${p.targetReps}${unit}  ${load}`
 }
+
+export interface TargetParts {
+  sets: number
+  reps: number
+  /** true when reps are seconds (e.g. plank holds). */
+  isTime: boolean
+  bodyweight: boolean
+  weight: number | null
+  units: WeightUnit
+}
+
+/**
+ * Structured target for the rich, labelled set/rep/weight UI — avoids the
+ * cryptic "4 × 5 @ 90 kg" shorthand by handing each value to the component
+ * separately (Sets / Reps|Hold / Weight|Body).
+ */
+export function targetParts(
+  exId: string,
+  progress: ProgressState,
+  units: WeightUnit = 'kg'
+): TargetParts | null {
+  const ex = EXERCISES[exId]
+  if (!ex) return null
+  const p = progress[exId] ?? initProgress(ex)
+  return {
+    sets: ex.sets,
+    reps: p.targetReps,
+    isTime: ex.unit === 'sec',
+    bodyweight: ex.equipment === 'bodyweight',
+    weight: p.suggestedWeight,
+    units
+  }
+}
