@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { useStore } from './state/store'
 import Onboarding from './screens/Onboarding'
 import ModeSelect from './screens/ModeSelect'
@@ -31,6 +31,13 @@ const TAB_VIEWS: Record<string, true> = {
 
 export default function App() {
   const { state } = useStore()
+
+  // Drive light/dark off the persisted theme. Applied to <html> (it sits above
+  // the app root, so the body surface + safe-area chrome pick it up too).
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = state.theme
+  }, [state.theme])
+
   const [view, setView] = useState<View>(state.active ? 'session' : 'home')
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailReturn, setDetailReturn] = useState<View>('home')

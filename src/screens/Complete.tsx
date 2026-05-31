@@ -22,21 +22,19 @@ export default function Complete({ onHome }: { onHome: () => void }) {
           <div className="success">
             <CheckIcon />
           </div>
-          <h1 className="h1" style={{ marginTop: 18, textAlign: 'center' }}>
+          <h1 className="h1" style={{ marginTop: 20, textAlign: 'center' }}>
             {last?.dayLabel} done
           </h1>
-          <p className="muted" style={{ textAlign: 'center' }}>
-            <span className="big-num" style={{ fontSize: 30 }}>
+          <p className="muted" style={{ textAlign: 'center', marginTop: 6 }}>
+            <span className="big-num" style={{ fontSize: 34, color: 'var(--text)' }}>
               {done}/{total}
             </span>
-            <br />
-            exercises completed · logged just now
           </p>
         </div>
 
         {ready && (
           <div className="card">
-            <span className="label">Suggested next</span>
+            <span className="label">Next up</span>
             <h2 className="h2">{ready.dayLabel}</h2>
             <span className={`pill${ready.ready ? ' ok' : ''}`}>
               <span className="dot" />

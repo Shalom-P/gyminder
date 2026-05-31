@@ -21,7 +21,15 @@ export default function ExerciseDetail({
   if (!ex || !info) return null
   const p = PATTERNS[info.pattern]
   const muscles = [cap(ex.primary), ...info.secondary]
-  const t = targetParts(exerciseId, state.progress, state.profile?.units ?? 'kg')
+  const tOpts = state.settings.custom
+    ? { sets: state.settings.sets, reps: state.settings.reps }
+    : undefined
+  const t = targetParts(
+    exerciseId,
+    state.progress,
+    state.profile?.units ?? 'kg',
+    tOpts
+  )
 
   return (
     <div className="frame push">

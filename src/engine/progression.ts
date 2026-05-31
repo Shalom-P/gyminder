@@ -179,22 +179,33 @@ export interface TargetParts {
 }
 
 /**
- * Structured target for the rich, labelled set/rep/weight UI — avoids the
- * cryptic "4 × 5 @ 90 kg" shorthand by handing each value to the component
- * separately (Sets / Reps|Hold / Weight|Body).
+ * Structured target for the rich set/rep/weight roller UI — hands each value to
+ * the component separately (Sets / Reps|Hold / Weight|Body).
+ *
+ * `opts` carries the global overrides from Settings → Targets: when the user
+ * sets a custom sets/reps count it replaces the programmed values everywhere
+ * (reps are left alone for timed holds, where "reps" are seconds).
  */
 export function targetParts(
   exId: string,
   progress: ProgressState,
-  units: WeightUnit = 'kg'
+  units: WeightUnit = 'kg',
+  opts?: { sets?: number; reps?: number }
 ): TargetParts | null {
   const ex = EXERCISES[exId]
   if (!ex) return null
   const p = progress[exId] ?? initProgress(ex)
+  const isTime = ex.unit === 'sec'
+  let sets = ex.sets
+  let reps = p.targetReps
+  if (opts) {
+    if (typeof opts.sets === 'number') sets = opts.sets
+    if (typeof opts.reps === 'number' && !isTime) reps = opts.reps
+  }
   return {
-    sets: ex.sets,
-    reps: p.targetReps,
-    isTime: ex.unit === 'sec',
+    sets,
+    reps,
+    isTime,
     bodyweight: ex.equipment === 'bodyweight',
     weight: p.suggestedWeight,
     units

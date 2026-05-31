@@ -10,8 +10,10 @@ import type {
   AppState,
   Profile,
   SessionEntry,
+  Settings,
   Split,
-  SplitDay
+  SplitDay,
+  ThemeMode
 } from '../types'
 import { CUSTOM_SPLIT_ID } from '../types'
 import { EXERCISES, getExercise } from '../data/exercises'
@@ -29,7 +31,9 @@ const EMPTY: AppState = {
   history: [],
   lastWorkoutAt: null,
   active: null,
-  customSplit: null
+  customSplit: null,
+  settings: { custom: false, sets: 3, reps: 8 },
+  theme: 'dark'
 }
 
 function load(): AppState {
@@ -45,6 +49,8 @@ function load(): AppState {
 type Action =
   | { type: 'onboard'; profile: Profile }
   | { type: 'setSplit'; id: string }
+  | { type: 'setTargets'; patch: Partial<Settings> }
+  | { type: 'setTheme'; theme: ThemeMode }
   | { type: 'setCustomSplit'; split: Split }
   | { type: 'start' }
   | { type: 'startDay'; dayId: string }
@@ -122,6 +128,12 @@ function reducer(state: AppState, action: Action): AppState {
         active: null
       }
 
+    case 'setTargets':
+      return { ...state, settings: { ...state.settings, ...action.patch } }
+
+    case 'setTheme':
+      return { ...state, theme: action.theme }
+
     case 'setCustomSplit':
       return {
         ...state,
@@ -185,6 +197,8 @@ interface Store {
   state: AppState
   onboard: (p: Profile) => void
   setSplit: (id: string) => void
+  setTargets: (patch: Partial<Settings>) => void
+  setTheme: (theme: ThemeMode) => void
   setCustomSplit: (split: Split) => void
   start: () => void
   startDay: (dayId: string) => void
@@ -212,6 +226,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       state,
       onboard: (profile) => dispatch({ type: 'onboard', profile }),
       setSplit: (id) => dispatch({ type: 'setSplit', id }),
+      setTargets: (patch) => dispatch({ type: 'setTargets', patch }),
+      setTheme: (theme) => dispatch({ type: 'setTheme', theme }),
       setCustomSplit: (split) => dispatch({ type: 'setCustomSplit', split }),
       start: () => dispatch({ type: 'start' }),
       startDay: (dayId) => dispatch({ type: 'startDay', dayId }),

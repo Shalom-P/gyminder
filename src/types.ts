@@ -45,6 +45,17 @@ export interface Split {
 export type Experience = 'beginner' | 'intermediate' | 'advanced'
 export type Goal = 'muscle' | 'strength' | 'general'
 export type WeightUnit = 'kg' | 'lb'
+export type ThemeMode = 'dark' | 'light'
+
+/**
+ * Global target overrides (Settings → Targets). When `custom` is on, `sets`
+ * and `reps` override every exercise's programmed target.
+ */
+export interface Settings {
+  custom: boolean
+  sets: number
+  reps: number
+}
 
 export interface Profile {
   experience: Experience
@@ -106,4 +117,8 @@ export interface AppState {
   active: ActiveSession | null
   /** User-built split, used when currentSplitId === CUSTOM_SPLIT_ID. */
   customSplit: Split | null
+  /** Global set/rep target overrides (Settings → Targets). */
+  settings: Settings
+  /** Light or dark appearance. */
+  theme: ThemeMode
 }
