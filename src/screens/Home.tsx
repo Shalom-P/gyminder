@@ -65,7 +65,7 @@ export default function Home({
   const estMin = Math.max(20, Math.round(estSecs / 60 / 5) * 5)
 
   const rel = relativeTime(state.lastWorkoutAt, now)
-  const headline = isReady ? 'You’re good to go' : 'Still recovering'
+  const headline = isReady ? 'Recovered and ready' : 'Recovery in progress'
 
   return (
     <div className="frame tabbed">
