@@ -33,8 +33,7 @@ private enum RestPhase {
     }
 }
 
-// Once the content is stale (rest has elapsed) we always show "Go", regardless
-// of the last phase the app managed to push.
+// Once stale (rest elapsed) we always show "Go", whatever the app last pushed.
 private func phaseFor(_ context: ActivityViewContext<GymRestAttributes>) -> RestPhase {
     if context.isStale { return .go }
     switch context.state.phase {
@@ -49,58 +48,88 @@ private func isCounting(_ context: ActivityViewContext<GymRestAttributes>) -> Bo
     return endsAt > Date()
 }
 
+// A colour-coded bar that drains continuously over the whole rest. Like the
+// countdown text it is system-driven, so it keeps moving even on a locked phone.
+@ViewBuilder
+private func drainBar(_ context: ActivityViewContext<GymRestAttributes>, tint: Color) -> some View {
+    if isCounting(context),
+       let start = context.state.startedAt,
+       let end = context.state.endsAt,
+       start < end {
+        ProgressView(timerInterval: start...end, countsDown: true) {
+            EmptyView()
+        } currentValueLabel: {
+            EmptyView()
+        }
+        .progressViewStyle(.linear)
+        .tint(tint)
+    } else {
+        Capsule().fill(tint).frame(height: 5).frame(maxWidth: .infinity)
+    }
+}
+
+@ViewBuilder
+private func bigTimer(_ context: ActivityViewContext<GymRestAttributes>, _ p: RestPhase, size: CGFloat) -> some View {
+    if isCounting(context), let end = context.state.endsAt {
+        Text(timerInterval: Date()...end, countsDown: true)
+            .font(.system(size: size, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(p.color)
+    } else {
+        Text(p.word)
+            .font(.system(size: size * 0.7, weight: .bold, design: .rounded))
+            .foregroundStyle(p.color)
+    }
+}
+
 struct GymRestLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GymRestAttributes.self) { context in
+            // Whole Lock Screen card tints to the current phase colour.
             RestLockScreenView(context: context)
-                .padding(16)
-                .activityBackgroundTint(Color.black.opacity(0.9))
+                .activityBackgroundTint(phaseFor(context).color.opacity(0.16))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             let p = phaseFor(context)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 6) {
+                    Label {
+                        Text(p.word).font(.caption.weight(.bold))
+                    } icon: {
                         Image(systemName: p.icon)
-                        Text(p.word).font(.caption.weight(.semibold))
                     }
                     .foregroundStyle(p.color)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("Set \(context.state.setIndex) of \(context.state.setTotal)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.exerciseName)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
+                    Text("Set \(context.state.setIndex)/\(context.state.setTotal)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(p.color)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if isCounting(context), let endsAt = context.state.endsAt {
-                        Text(timerInterval: Date()...endsAt, countsDown: true)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(p.color)
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text(p == .go ? "Time to lift" : p.word)
-                            .font(.headline)
-                            .foregroundStyle(p.color)
-                            .frame(maxWidth: .infinity)
+                    VStack(spacing: 8) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(context.state.exerciseName)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                            Spacer(minLength: 8)
+                            bigTimer(context, p, size: 26)
+                        }
+                        drainBar(context, tint: p.color)
                     }
                 }
             } compactLeading: {
                 Image(systemName: p.icon).foregroundStyle(p.color)
             } compactTrailing: {
-                if isCounting(context), let endsAt = context.state.endsAt {
-                    Text(timerInterval: Date()...endsAt, countsDown: true)
+                if isCounting(context), let end = context.state.endsAt {
+                    Text(timerInterval: Date()...end, countsDown: true)
+                        .font(.caption2.weight(.bold))
                         .monospacedDigit()
                         .foregroundStyle(p.color)
                         .frame(maxWidth: 44)
                 } else {
-                    Text("\(context.state.setIndex)/\(context.state.setTotal)")
+                    Text(p.word)
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(p.color)
                 }
             } minimal: {
@@ -116,35 +145,32 @@ struct RestLockScreenView: View {
 
     var body: some View {
         let p = phaseFor(context)
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(p.color.opacity(0.18)).frame(width: 52, height: 52)
-                Image(systemName: p.icon).font(.title3).foregroundStyle(p.color)
+        VStack(spacing: 12) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(p.color.opacity(0.22)).frame(width: 50, height: 50)
+                    Image(systemName: p.icon)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(p.color)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(p.word.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(p.color)
+                    Text(context.state.exerciseName)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Text("Set \(context.state.setIndex) of \(context.state.setTotal)")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.65))
+                }
+                Spacer()
+                bigTimer(context, p, size: 30)
+                    .frame(minWidth: 86, alignment: .trailing)
             }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(context.attributes.dayLabel.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(p.color)
-                Text(context.state.exerciseName)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                Text("Set \(context.state.setIndex) of \(context.state.setTotal)")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            Spacer()
-            if isCounting(context), let endsAt = context.state.endsAt {
-                Text(timerInterval: Date()...endsAt, countsDown: true)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(p.color)
-                    .frame(width: 88)
-            } else {
-                Text(p.word)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(p.color)
-            }
+            drainBar(context, tint: p.color)
         }
+        .padding(16)
     }
 }

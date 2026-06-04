@@ -4,6 +4,8 @@ export type RestPhase = 'resting' | 'almostUp' | 'lifting'
 
 export interface LiveRestState {
   phase: RestPhase
+  /** Wall-clock ms when the current rest started; pairs with endsAt for the drain bar. */
+  startedAt?: number | null
   /** Wall-clock ms when the current rest ends; omit/null while a set is active. */
   endsAt?: number | null
   /** 1-based index of the upcoming/active set. */

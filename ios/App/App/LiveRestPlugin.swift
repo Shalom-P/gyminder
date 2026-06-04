@@ -40,10 +40,13 @@ public class LiveRestPlugin: CAPPlugin, CAPBridgedPlugin {
             call.resolve(["ok": false, "reason": "live activities disabled"]); return
         }
 
+        var startedAt: Date?
+        if let ms = call.getDouble("startedAt") { startedAt = Date(timeIntervalSince1970: ms / 1000.0) }
         var endsAt: Date?
         if let ms = call.getDouble("endsAt") { endsAt = Date(timeIntervalSince1970: ms / 1000.0) }
         let state = GymRestAttributes.ContentState(
             phase: call.getString("phase") ?? "lifting",
+            startedAt: startedAt,
             endsAt: endsAt,
             setIndex: call.getInt("setIndex") ?? 1,
             setTotal: call.getInt("setTotal") ?? 1,

@@ -14,7 +14,9 @@ struct GymRestAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         /// "resting" | "almostUp" | "lifting"
         var phase: String
-        /// Wall-clock moment the current rest ends; nil while a set is active.
+        /// Wall-clock window of the current rest; both nil while a set is active.
+        /// `startedAt` lets the widget draw a bar that drains over the whole rest.
+        var startedAt: Date?
         var endsAt: Date?
         /// 1-based index of the upcoming/active set.
         var setIndex: Int
