@@ -21,22 +21,22 @@ export default function Session({
   onQuit: () => void
   onShowHow: (exerciseId: string) => void
 }) {
-  const { state, mark, abandon } = useStore()
+  const { state, mark, abandon, advanceSet, setRest } = useStore()
   const [reps, setReps] = useState<number | null>(null)
   const [weight, setWeight] = useState<number | null>(null)
   const [showDemo, setShowDemo] = useState(false)
-  const [setIdx, setSetIdx] = useState(0)
-  const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
   const [, setTick] = useState(0)
 
   const a = state.active
   const units = state.profile?.units ?? 'kg'
   const cursor = a?.cursor ?? -1
+  // Set position and rest timer live in the store so they survive a trip to the
+  // How-to screen (which unmounts this component) and even an app reload.
+  const setIdx = a?.setIdx ?? 0
+  const restEndsAt = a?.restEndsAt ?? null
 
-  // Reset per-exercise UI when the workout advances to the next exercise.
+  // Collapse the inline demo when the workout advances to the next exercise.
   useEffect(() => {
-    setSetIdx(0)
-    setRestEndsAt(null)
     setShowDemo(false)
   }, [cursor])
 
@@ -67,8 +67,23 @@ export default function Session({
   const t = targetParts(item.exerciseId, state.progress, units, tOpts)
 
   const repMax = t ? Math.max((t.reps || 1) + 10, 20) : 20
-  const repsVal = reps == null ? (t && t.isTime ? t.reps : 0) : reps
+  // Pre-fill reps with the target so a tap on "Complete set" logs the planned
+  // work; the lifter only dials when they did more or fewer.
+  const repsVal = reps == null ? (t ? t.reps : 0) : reps
   const weightVal = weight == null ? (t && t.weight != null ? t.weight : 0) : weight
+  // Upper bound for the weight roller. With a suggestion we bracket around it;
+  // with none (first time on a lift) we open a sensible range so the lifter can
+  // dial in a working weight and bootstrap progression.
+  const weightMax =
+    t && t.weight != null
+      ? Math.max(t.weight * 2, t.weight + 40, 40)
+      : ex && ex.type === 'compound'
+        ? units === 'lb'
+          ? 405
+          : 180
+        : units === 'lb'
+          ? 225
+          : 100
   const total = a.plan.length
   const isLastExercise = a.cursor === total - 1
   const totalSets = t ? t.sets : (ex?.sets ?? 1)
@@ -79,38 +94,30 @@ export default function Session({
   const resting = restLeft > 0
   const restPct = restTotal > 0 ? (restLeft / restTotal) * 100 : 0
   const doneLabel = !isLastSet
-    ? 'Done with hold'
+    ? 'Complete set'
     : isLastExercise
       ? 'Finish workout'
       : 'Finish exercise'
 
-  // Log the exercise: dialed reps (or the target), and weight unless bodyweight.
+  // Log the exercise: dialed reps (or the target), and the dialed weight unless
+  // it's a bodyweight move or left at zero.
   function finishExercise(repsCount?: number) {
-    setRestEndsAt(null)
     const r = repsCount != null ? repsCount : repsVal > 0 ? repsVal : t?.reps
-    const w = t && !t.bodyweight && t.weight != null ? weightVal : undefined
+    const w = t && !t.bodyweight && weightVal > 0 ? weightVal : undefined
     mark('done', r, w)
     if (isLastExercise) onComplete()
   }
   function skip() {
-    setRestEndsAt(null)
     mark('skip')
     if (isLastExercise) onComplete()
   }
   // Mid-exercise: advance to the next set + start rest. Last set: log it.
   function completeSet(repsCount?: number) {
     if (ex && !isLastSet) {
-      setSetIdx(setIdx + 1)
-      setRestEndsAt(Date.now() + restSeconds(ex) * 1000)
+      advanceSet(Date.now() + restSeconds(ex) * 1000)
       return
     }
     finishExercise(repsCount)
-  }
-  // Each tap counts one rep up the wheel; hitting the target completes the set.
-  function addRep() {
-    const nv = Math.min(repMax, (repsVal || 0) + 1)
-    setReps(nv)
-    if (t && !t.isTime && nv >= (t.reps || 1)) completeSet(nv)
   }
   function quit() {
     abandon()
@@ -165,16 +172,22 @@ export default function Session({
             {t && (
               <div className="target-stats" role="group">
                 <SetRoller current={setIdx + 1} total={t.sets} />
-                <div className="tstat-div" aria-hidden="true" />
-                <ValueRoller
-                  label={t.isTime ? 'Hold' : 'Reps'}
-                  value={repsVal}
-                  min={0}
-                  max={repMax}
-                  step={1}
-                  suffix={t.isTime ? 'sec' : `of ${t.reps}`}
-                  onChange={setReps}
-                />
+                {/* Timed holds keep a duration wheel; rep work no longer shows a
+                    rep counter — "Complete set" logs the programmed target. */}
+                {t.isTime && (
+                  <>
+                    <div className="tstat-div" aria-hidden="true" />
+                    <ValueRoller
+                      label="Hold"
+                      value={repsVal}
+                      min={0}
+                      max={repMax}
+                      step={1}
+                      suffix="sec"
+                      onChange={setReps}
+                    />
+                  </>
+                )}
                 <div className="tstat-div" aria-hidden="true" />
                 {t.bodyweight ? (
                   <div className="tstat">
@@ -184,24 +197,16 @@ export default function Session({
                     </div>
                     <span className="roller-total">&nbsp;</span>
                   </div>
-                ) : t.weight != null ? (
+                ) : (
                   <ValueRoller
                     label="Weight"
                     value={weightVal}
                     min={0}
-                    max={Math.max((t.weight || 0) * 2, (t.weight || 0) + 40, 40)}
+                    max={weightMax}
                     step={units === 'lb' ? 5 : 2.5}
                     suffix={t.units}
                     onChange={setWeight}
                   />
-                ) : (
-                  <div className="tstat">
-                    <span className="tstat-lbl">Weight</span>
-                    <div className="roller-static">
-                      <span className="tstat-bw">—</span>
-                    </div>
-                    <span className="roller-total">&nbsp;</span>
-                  </div>
                 )}
               </div>
             )}
@@ -229,16 +234,12 @@ export default function Session({
 
         <div className="actions">
           {resting ? (
-            <button className="btn primary" onClick={() => setRestEndsAt(null)}>
+            <button className="btn primary" onClick={() => setRest(null)}>
               Skip rest
             </button>
-          ) : t && t.isTime ? (
+          ) : (
             <button className="btn primary" onClick={() => completeSet()}>
               {doneLabel}
-            </button>
-          ) : (
-            <button className="btn primary" onClick={addRep}>
-              Done with rep
             </button>
           )}
           <button className="btn ghost" onClick={skip}>

@@ -55,6 +55,8 @@ type Action =
   | { type: 'start' }
   | { type: 'startDay'; dayId: string }
   | { type: 'mark'; status: 'done' | 'skip'; reps?: number; weight?: number }
+  | { type: 'advanceSet'; restEndsAt: number }
+  | { type: 'setRest'; restEndsAt: number | null }
   | { type: 'abandon' }
   | { type: 'resetAll' }
   | { type: 'redoSetup' }
@@ -110,7 +112,9 @@ function beginSession(state: AppState, day: SplitDay): AppState {
       dayLabel: day.label,
       cursor: 0,
       plan: items,
-      entries: []
+      entries: [],
+      setIdx: 0,
+      restEndsAt: null
     }
   }
 }
@@ -171,12 +175,28 @@ function reducer(state: AppState, action: Action): AppState {
       const entries = [...a.entries, entry]
       const advanced: AppState = {
         ...state,
-        active: { ...a, cursor: a.cursor + 1, entries }
+        // Next exercise starts fresh: back to set 1, no carried-over rest.
+        active: { ...a, cursor: a.cursor + 1, entries, setIdx: 0, restEndsAt: null }
       }
       // Last exercise just logged — finalize the session in one step so the
       // history record is ready before the Complete screen renders.
       if (a.cursor + 1 >= a.plan.length) return finalize(advanced, entries)
       return advanced
+    }
+
+    case 'advanceSet': {
+      const a = state.active
+      if (!a) return state
+      return {
+        ...state,
+        active: { ...a, setIdx: (a.setIdx ?? 0) + 1, restEndsAt: action.restEndsAt }
+      }
+    }
+
+    case 'setRest': {
+      const a = state.active
+      if (!a) return state
+      return { ...state, active: { ...a, restEndsAt: action.restEndsAt } }
     }
 
     case 'abandon':
@@ -203,6 +223,8 @@ interface Store {
   start: () => void
   startDay: (dayId: string) => void
   mark: (status: 'done' | 'skip', reps?: number, weight?: number) => void
+  advanceSet: (restEndsAt: number) => void
+  setRest: (restEndsAt: number | null) => void
   abandon: () => void
   resetAll: () => void
   redoSetup: () => void
@@ -233,6 +255,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       startDay: (dayId) => dispatch({ type: 'startDay', dayId }),
       mark: (status, reps, weight) =>
         dispatch({ type: 'mark', status, reps, weight }),
+      advanceSet: (restEndsAt) => dispatch({ type: 'advanceSet', restEndsAt }),
+      setRest: (restEndsAt) => dispatch({ type: 'setRest', restEndsAt }),
       abandon: () => dispatch({ type: 'abandon' }),
       resetAll: () => dispatch({ type: 'resetAll' }),
       redoSetup: () => dispatch({ type: 'redoSetup' })
