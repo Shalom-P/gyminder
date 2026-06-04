@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { useStore } from './state/store'
 import { EXERCISES } from './data/exercises'
-import { targetParts } from './engine/progression'
+import { restSeconds, targetParts } from './engine/progression'
 import { liveRest } from './native/liveRest'
 import Onboarding from './screens/Onboarding'
 import ModeSelect from './screens/ModeSelect'
@@ -173,22 +173,25 @@ export default function App() {
       : null
     const setTotal = t ? t.sets : ex?.sets ?? 1
     const resting = a.restEndsAt != null && a.restEndsAt > Date.now()
+    const restMs = ex ? restSeconds(ex) * 1000 : 0
+    const startedAt = resting && a.restEndsAt != null ? a.restEndsAt - restMs : null
     const base = {
       setIndex: (a.setIdx ?? 0) + 1,
       setTotal,
       exerciseName: ex?.name ?? '',
-      dayLabel: a.dayLabel
+      dayLabel: a.dayLabel,
+      startedAt
     }
     liveRest.update({
       ...base,
       phase: resting ? 'resting' : 'lifting',
       endsAt: resting ? a.restEndsAt : null
     })
-    // Foreground-only amber "get ready" ~10s before rest ends; when the phone is
-    // locked this timer is suspended and the native staleDate handles the green.
+    // Foreground-only amber "get ready" — the last ~20s of rest. When the phone
+    // is locked this timer is suspended and the native staleDate handles green.
     if (resting && a.restEndsAt != null) {
       const endsAt = a.restEndsAt
-      const ms = endsAt - Date.now() - 10000
+      const ms = endsAt - Date.now() - 20000
       if (ms > 200) {
         const id = window.setTimeout(() => {
           liveRest.update({ ...base, phase: 'almostUp', endsAt })

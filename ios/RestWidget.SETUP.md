@@ -4,7 +4,7 @@ This adds a Dynamic Island / Lock Screen Live Activity that shows the
 between-sets rest timer, colour-coded by phase:
 
 - 🟣 **Rest** (violet) — counting down between sets
-- 🟠 **Get ready** (amber) — final ~10 s of rest *(see "Behaviour" below)*
+- 🟠 **Get ready** (amber) — final ~20 s of rest *(see "Behaviour" below)*
 - 🟢 **Go** (green) — rest is over / a set is in progress
 
 The web/React side and the Capacitor bridge are already wired. The only thing
@@ -55,9 +55,11 @@ Activity on a **locked** phone without a push server. So:
 
 - The **violet countdown** ticks live in the island even when locked (it's a
   system timer view, not app-driven). ✅
+- A **colour-tinted bar drains** over the whole rest (island + Lock Screen) —
+  also system-driven, so it keeps visibly moving even while the phone is locked. ✅
 - The flip to **green "Go"** at rest-end is reliable locked *or* unlocked — it
   uses ActivityKit's `staleDate`, no server required. ✅
-- The **amber "Get ready"** cue (last ~10 s) is pushed by the app, so it only
+- The **amber "Get ready"** cue (last ~20 s) is pushed by the app, so it only
   appears when the app/phone is **awake/foreground** during those seconds. On a
   locked phone you'll see violet → green. To make amber reliable while locked
   you'd need APNs push updates (a small server) — happy to add that later.
