@@ -1,10 +1,14 @@
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode
 } from 'react'
 import { useStore } from './state/store'
+import { EXERCISES } from './data/exercises'
+import { targetParts } from './engine/progression'
+import { liveRest } from './native/liveRest'
 import Onboarding from './screens/Onboarding'
 import ModeSelect from './screens/ModeSelect'
 import Home from './screens/Home'
@@ -150,6 +154,49 @@ export default function App() {
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = state.theme
   }, [state.theme])
+
+  // Drive the iOS rest Live Activity (Dynamic Island) off the active session.
+  // No-ops on web/Android — see src/native/liveRest.ts.
+  useEffect(() => {
+    const a = state.active
+    if (!a) {
+      liveRest.end()
+      return
+    }
+    const item = a.plan[a.cursor]
+    const ex = item ? EXERCISES[item.exerciseId] : undefined
+    const tOpts = state.settings.custom
+      ? { sets: state.settings.sets, reps: state.settings.reps }
+      : undefined
+    const t = item
+      ? targetParts(item.exerciseId, state.progress, state.profile?.units ?? 'kg', tOpts)
+      : null
+    const setTotal = t ? t.sets : ex?.sets ?? 1
+    const resting = a.restEndsAt != null && a.restEndsAt > Date.now()
+    const base = {
+      setIndex: (a.setIdx ?? 0) + 1,
+      setTotal,
+      exerciseName: ex?.name ?? '',
+      dayLabel: a.dayLabel
+    }
+    liveRest.update({
+      ...base,
+      phase: resting ? 'resting' : 'lifting',
+      endsAt: resting ? a.restEndsAt : null
+    })
+    // Foreground-only amber "get ready" ~10s before rest ends; when the phone is
+    // locked this timer is suspended and the native staleDate handles the green.
+    if (resting && a.restEndsAt != null) {
+      const endsAt = a.restEndsAt
+      const ms = endsAt - Date.now() - 10000
+      if (ms > 200) {
+        const id = window.setTimeout(() => {
+          liveRest.update({ ...base, phase: 'almostUp', endsAt })
+        }, ms)
+        return () => window.clearTimeout(id)
+      }
+    }
+  }, [state.active, state.settings, state.progress, state.profile])
 
   const [view, setView] = useState<View>(state.active ? 'session' : 'home')
   const [detailId, setDetailId] = useState<string | null>(null)
