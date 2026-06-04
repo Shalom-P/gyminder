@@ -103,6 +103,11 @@ export interface ActiveSession {
   cursor: number
   plan: PlanItem[]
   entries: SessionEntry[]
+  /** Current set within the active exercise (0-based). Lives in the store so it
+   *  survives leaving for the How-to screen — and an app reload — mid-workout. */
+  setIdx: number
+  /** Wall-clock ms when the current rest ends, or null when not resting. */
+  restEndsAt: number | null
 }
 
 export const CUSTOM_SPLIT_ID = 'custom'
