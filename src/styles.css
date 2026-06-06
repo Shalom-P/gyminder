@@ -1,5 +1,6 @@
-/* GYMINDER — "Aura" design system.
-   Premium, borderless dark/light UI built on a single violet accent.
+/* GYMINDER — "Volt" design system (a bolder reinvention of "Aura").
+   Premium, borderless dark/light UI on an electric-violet accent, with bundled
+   self-hosted type: Space Grotesk (display + numerals) over Inter (UI/body).
    Everything blends: translucent fills, soft light, no hard lines or boxes.
    Progress is treated as an achievement that *charges* and *unlocks*.
 
@@ -14,18 +15,27 @@
 
 /* ============================ THEME TOKENS ============================ */
 :root {
-  /* violet accent — one hue, refined */
-  --accent: #a78bfa;
-  --accent-2: #c9b8ff; /* lighter lilac — gradient highlight */
-  --accent-deep: #7c5cf6; /* deeper violet — shadows / light mode */
-  --accent-ink: #160f2e; /* near-black violet — text on accent */
-  --accent-glow: rgba(167, 139, 250, 0.55);
-  --accent-wash: rgba(167, 139, 250, 0.12);
+  /* ---- type families: bundled, self-hosted, fully offline ----
+     Space Grotesk carries screen titles, the brand and every hero numeral (its
+     mono heritage gives confident, even-width digits that never jitter); Inter
+     carries all UI/body text for unbeatable small-size legibility. */
+  --font-ui: 'Inter Variable', -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', system-ui,
+    sans-serif;
+
+  /* electric violet — one hue, charged */
+  --accent: #7c5cff;
+  --accent-2: #b6a4ff; /* bright iris — gradient top; keeps dark ink legible */
+  --accent-deep: #5a2ff0; /* deep violet — gradient base / light mode */
+  --accent-ink: #110826; /* near-black violet — text on accent fills */
+  --accent-glow: rgba(124, 92, 255, 0.6);
+  --accent-wash: rgba(124, 92, 255, 0.14);
 
   --grad: linear-gradient(
     150deg,
     var(--accent-2) 0%,
-    var(--accent) 48%,
+    var(--accent) 44%,
     var(--accent-deep) 100%
   );
   --grad-soft: linear-gradient(150deg, var(--accent) 0%, var(--accent-deep) 100%);
@@ -33,13 +43,13 @@
   --ok: var(--accent-2);
   --danger: #fb7185;
 
-  /* radii */
-  --r-sm: 13px;
+  /* radii — a touch more confident */
+  --r-sm: 14px;
   --r-md: 18px;
-  --r-lg: 26px;
-  --r-xl: 36px;
+  --r-lg: 28px;
+  --r-xl: 40px;
 
-  /* one spring for everything */
+  /* one spring for everything (the nav stack depends on these) */
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --t: 0.55s;
@@ -47,8 +57,8 @@
   --nav-tf: 0.32s; /* peer cross-fade duration */
 
   /* ---- type system: one uniform scale ----
-     weights snap to 500 / 600 / 700; sizes to a 7-step scale; every
-     uppercase overline shares the same tracking. */
+     weights snap to 500 / 600 / 700; body is 16px (mobile-legibility research);
+     every uppercase overline shares the same tracking. */
   --w-med: 500;
   --w-semi: 600;
   --w-bold: 700;
@@ -56,66 +66,66 @@
   --fs-micro: 11px; /* tab labels, tiny overlines */
   --fs-caption: 12px; /* overlines, labels */
   --fs-sub: 13px; /* secondary / hints */
-  --fs-body: 15px; /* body copy */
+  --fs-body: 16px; /* body copy */
   --fs-headline: 17px; /* buttons, list titles */
-  --fs-title: 21px; /* card / section headings */
-  --fs-display: 31px; /* screen titles */
+  --fs-title: 22px; /* card / section headings */
+  --fs-display: 34px; /* screen titles (Space Grotesk) */
 
-  --lh-tight: 1.1;
-  --lh-snug: 1.32;
+  --lh-tight: 1.04;
+  --lh-snug: 1.3;
   --lh-body: 1.5;
 
-  --ls-display: -0.03em;
-  --ls-tight: -0.02em;
-  --ls-cap: 0.14em; /* uppercase overlines, unified */
+  --ls-display: -0.028em;
+  --ls-tight: -0.018em;
+  --ls-cap: 0.16em; /* uppercase overlines, unified */
 }
 
 /* ---- DARK (default) ---- */
 :root {
-  --bg: #08080c;
-  --bg-2: #0c0b12;
-  --bg-glow: color-mix(in srgb, var(--accent) 14%, transparent);
+  --bg: #060509;
+  --bg-2: #0d0a17;
+  --bg-glow: color-mix(in srgb, var(--accent) 18%, transparent);
 
-  --fill: rgba(255, 255, 255, 0.045);
-  --fill-2: rgba(255, 255, 255, 0.072);
-  --fill-3: rgba(255, 255, 255, 0.11);
-  --sheen: rgba(255, 255, 255, 0.06); /* top inset highlight — replaces borders */
+  --fill: rgba(255, 255, 255, 0.05);
+  --fill-2: rgba(255, 255, 255, 0.085);
+  --fill-3: rgba(255, 255, 255, 0.13);
+  --sheen: rgba(255, 255, 255, 0.07); /* top inset highlight — replaces borders */
 
-  --text: #f5f4f8;
-  --muted: #9b98a8;
-  --faint: #5c5a68;
+  --text: #f6f5fb;
+  --muted: #9d9aab;
+  --faint: #5f5d6d;
 
   --shadow-soft: 0 1px 0 var(--sheen) inset;
-  --shadow-lift: 0 18px 50px -22px rgba(0, 0, 0, 0.8);
+  --shadow-lift: 0 22px 60px -24px rgba(0, 0, 0, 0.85);
 
   color-scheme: dark;
 }
 
 /* ---- LIGHT ---- */
 :root[data-theme='light'] {
-  --accent: #6d4ff0;
+  --accent: #6a3df0;
   --accent-2: #8f74ff;
-  --accent-deep: #5a3fd6;
+  --accent-deep: #5326d8;
   --accent-ink: #ffffff;
-  --accent-glow: rgba(109, 79, 240, 0.32);
-  --accent-wash: rgba(109, 79, 240, 0.09);
+  --accent-glow: rgba(106, 61, 240, 0.34);
+  --accent-wash: rgba(106, 61, 240, 0.1);
   --ok: var(--accent);
 
-  --bg: #f3f2f8;
-  --bg-2: #ecebf4;
-  --bg-glow: color-mix(in srgb, var(--accent) 10%, transparent);
+  --bg: #f4f3f9;
+  --bg-2: #eceaf6;
+  --bg-glow: color-mix(in srgb, var(--accent) 12%, transparent);
 
-  --fill: rgba(22, 16, 45, 0.045);
-  --fill-2: rgba(22, 16, 45, 0.07);
-  --fill-3: rgba(22, 16, 45, 0.11);
-  --sheen: rgba(255, 255, 255, 0.7);
+  --fill: rgba(22, 16, 45, 0.05);
+  --fill-2: rgba(22, 16, 45, 0.08);
+  --fill-3: rgba(22, 16, 45, 0.12);
+  --sheen: rgba(255, 255, 255, 0.75);
 
-  --text: #16131f;
-  --muted: #66626f;
-  --faint: #9b97a6;
+  --text: #15121e;
+  --muted: #635f6e;
+  --faint: #9995a6;
 
   --shadow-soft: 0 1px 2px rgba(22, 16, 45, 0.05), 0 1px 0 var(--sheen) inset;
-  --shadow-lift: 0 22px 48px -26px rgba(60, 40, 130, 0.4);
+  --shadow-lift: 0 26px 54px -26px rgba(60, 40, 130, 0.42);
 
   color-scheme: light;
 }
@@ -146,13 +156,13 @@ body {
     linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 34%);
   background-attachment: fixed;
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui,
-    sans-serif;
+  font-family: var(--font-ui);
+  font-optical-sizing: auto;
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.014em;
+  letter-spacing: -0.006em;
   overscroll-behavior: none;
   transition: background-color 0.55s var(--ease);
 }
@@ -512,6 +522,29 @@ input {
   font-feature-settings: 'tnum' 1;
 }
 
+/* Display family (Space Grotesk) — screen titles, brand, and every hero
+   numeral. Numerals stay tabular so timers/metrics never shift width as the
+   value changes — the single most important legibility win for live data. */
+.h1,
+.h2,
+.brand,
+.badge,
+.ring-big,
+.ring-label,
+.ring-status,
+.chip,
+.hm-item b,
+.tstat-val,
+.tstat-bw,
+.step-val,
+.roller-item,
+.rest-time,
+.stat .n,
+.hist-score,
+.big-num {
+  font-family: var(--font-display);
+}
+
 /* ============================ CARD ============================ */
 .card {
   background: var(--fill);
@@ -541,7 +574,7 @@ input {
 .btn {
   border: none;
   border-radius: var(--r-md);
-  min-height: 60px;
+  min-height: 62px;
   font-size: var(--fs-headline);
   font-weight: var(--w-semi);
   padding: 0 20px;
@@ -565,8 +598,8 @@ input {
   color: var(--accent-ink);
   font-weight: var(--w-bold);
   letter-spacing: 0.005em;
-  box-shadow: 0 14px 40px -14px var(--accent-glow),
-    0 1px 0 rgba(255, 255, 255, 0.22) inset;
+  box-shadow: 0 18px 48px -14px var(--accent-glow),
+    0 1px 0 rgba(255, 255, 255, 0.28) inset;
 }
 .btn.primary:active {
   filter: brightness(1.05);
@@ -799,11 +832,11 @@ input {
   stroke: url(#ringgradrest); /* recovering — graded by coverage */
   stroke-linecap: round;
   transition: stroke-dashoffset 1.1s var(--ease), filter 0.6s var(--ease);
-  filter: drop-shadow(0 0 8px var(--rc-glow));
+  filter: drop-shadow(0 0 11px var(--rc-glow));
 }
 .ring-arc.charged {
   stroke: url(#ringgradok); /* recovered & ready — violet bloom */
-  filter: drop-shadow(0 0 14px var(--accent-glow));
+  filter: drop-shadow(0 0 19px var(--accent-glow));
 }
 
 .ring-center {
@@ -830,9 +863,9 @@ input {
   color: var(--accent);
 }
 .ring-big {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: var(--w-bold);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.028em;
 }
 .ring-sub {
   font-size: var(--fs-sub);
@@ -900,6 +933,17 @@ input {
   flex: none;
 }
 
+/* Complete screen — the celebratory "peak/end" cluster above the stat row */
+.complete-celebrate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.complete-celebrate .h1 {
+  margin-top: 4px;
+}
+
 /* ============================ STEP DOTS ============================ */
 .dots {
   display: flex;
@@ -923,15 +967,15 @@ input {
 /* ============================ SUCCESS / UNLOCK ============================ */
 .success {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 108px;
+  height: 108px;
   border-radius: 999px;
   display: grid;
   place-items: center;
   background: var(--grad);
   color: var(--accent-ink);
-  box-shadow: 0 18px 54px -14px var(--accent-glow),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  box-shadow: 0 22px 60px -12px var(--accent-glow),
+    0 1px 0 rgba(255, 255, 255, 0.34) inset;
   animation: pop 0.6s var(--ease) both;
 }
 .success::after {
@@ -1351,9 +1395,9 @@ input {
   color: var(--accent);
 }
 .rest-time {
-  font-size: 60px;
+  font-size: 64px;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--text);

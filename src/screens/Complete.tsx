@@ -2,13 +2,28 @@ import { useStore } from '../state/store'
 import { formatIn, nextReadyInfo } from '../engine/schedule'
 import { CheckIcon } from '../components/icons'
 
+// Positive, competence-framed sign-offs (peak-end rule + self-determination
+// theory): celebrate the work done, never guilt. Chosen by session count so the
+// line varies session to session without feeling random.
+const SIGNOFFS = [
+  "Strong work — that's logged.",
+  "That's how progress compounds.",
+  "Banked. Recovery starts now.",
+  "Every set counted. Nice."
+]
+
+const WEEK = 7 * 24 * 60 * 60 * 1000
+
 export default function Complete({ onHome }: { onHome: () => void }) {
   const { state } = useStore()
+  const now = Date.now()
   const last = state.history[state.history.length - 1]
   const done = last ? last.entries.filter((e) => e.status === 'done').length : 0
   const total = last ? last.entries.length : 0
+  const thisWeek = state.history.filter((h) => h.at >= now - WEEK).length
+  const allTime = state.history.length
   const ready = nextReadyInfo(state)
-  const now = Date.now()
+  const signoff = SIGNOFFS[allTime % SIGNOFFS.length]
 
   return (
     <div className="frame push">
@@ -19,17 +34,39 @@ export default function Complete({ onHome }: { onHome: () => void }) {
 
       <div className="body">
         <div className="hero">
-          <div className="success">
-            <CheckIcon />
+          <div className="complete-celebrate">
+            <div className="success">
+              <CheckIcon />
+            </div>
+            <h1 className="h1" style={{ textAlign: 'center' }}>
+              {last?.dayLabel} done
+            </h1>
+            <p className="muted" style={{ textAlign: 'center' }}>
+              {signoff}
+            </p>
           </div>
-          <h1 className="h1" style={{ marginTop: 20, textAlign: 'center' }}>
-            {last?.dayLabel} done
-          </h1>
-          <p className="muted" style={{ textAlign: 'center', marginTop: 6 }}>
-            <span className="big-num" style={{ fontSize: 34, color: 'var(--text)' }}>
-              {done}/{total}
-            </span>
-          </p>
+
+          {/* Competence + consistency made tangible: what you just did, plus the
+              streak it's part of — the reward that makes the habit stick. */}
+          <div className="home-meta">
+            <div className="hm-item">
+              <b>
+                {done}
+                <i>/{total}</i>
+              </b>
+              <span>Exercises</span>
+            </div>
+            <span className="hm-sep" />
+            <div className="hm-item">
+              <b>{thisWeek}</b>
+              <span>This week</span>
+            </div>
+            <span className="hm-sep" />
+            <div className="hm-item">
+              <b>{allTime}</b>
+              <span>All-time</span>
+            </div>
+          </div>
         </div>
 
         {ready && (
