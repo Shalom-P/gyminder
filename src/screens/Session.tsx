@@ -1,16 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
 import { restSeconds, targetParts } from '../engine/progression'
 import { SetRoller, ValueRoller } from '../components/Rollers'
 import ExerciseDemo from '../components/ExerciseDemo'
+import { CheckIcon } from '../components/icons'
 
 function mmss(sec: number): string {
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${m}:${s.toString().padStart(2, '0')}`
 }
+
+// How long the completion checkmark plays before the next state takes over.
+// Kept brief (Apple HIG: quick + purposeful for frequent interactions).
+const POP_MS = 360
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export default function Session({
   onComplete,
@@ -26,6 +34,16 @@ export default function Session({
   const [weight, setWeight] = useState<number | null>(null)
   const [showDemo, setShowDemo] = useState(false)
   const [, setTick] = useState(0)
+  // Completion-beat state: `pop` increments to replay the checkmark; `pendingRef`
+  // holds the timer that fires the actual advance once the beat has played.
+  const [pop, setPop] = useState(0)
+  const pendingRef = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (pendingRef.current != null) window.clearTimeout(pendingRef.current)
+    },
+    []
+  )
 
   const a = state.active
   const units = state.profile?.units ?? 'kg'
@@ -107,17 +125,44 @@ export default function Session({
     mark('done', r, w)
     if (isLastExercise) onComplete()
   }
-  function skip() {
-    mark('skip')
-    if (isLastExercise) onComplete()
-  }
-  // Mid-exercise: advance to the next set + start rest. Last set: log it.
-  function completeSet(repsCount?: number) {
+  // The real advance — mid-exercise: next set + start rest; last set: log it.
+  function advanceNow(repsCount?: number) {
     if (ex && !isLastSet) {
       advanceSet(Date.now() + restSeconds(ex) * 1000)
       return
     }
     finishExercise(repsCount)
+  }
+  function clearPending() {
+    if (pendingRef.current != null) {
+      window.clearTimeout(pendingRef.current)
+      pendingRef.current = null
+    }
+  }
+  function skip() {
+    clearPending()
+    mark('skip')
+    if (isLastExercise) onComplete()
+  }
+  // Completing a set plays a brief Apple-style confirmation, then advances to the
+  // next state (rest timer / next exercise). It's interruptible (a second tap
+  // jumps straight through), skipped under Reduce Motion, and skipped on the very
+  // last set — the Complete screen is already that celebration (peak-end rule).
+  function completeSet(repsCount?: number) {
+    if (pendingRef.current != null) {
+      clearPending()
+      advanceNow(repsCount)
+      return
+    }
+    if ((isLastSet && isLastExercise) || prefersReducedMotion()) {
+      advanceNow(repsCount)
+      return
+    }
+    setPop((n) => n + 1)
+    pendingRef.current = window.setTimeout(() => {
+      pendingRef.current = null
+      advanceNow(repsCount)
+    }, POP_MS)
   }
   function quit() {
     abandon()
@@ -139,7 +184,7 @@ export default function Session({
       </div>
 
       <div className="body">
-        <div className="sess-top">
+        <div className="sess-top" key={`top-${a.cursor}`}>
           <span className="eyebrow">{a.dayLabel}</span>
           <h1 className="h1">{ex?.name}</h1>
           <div
@@ -157,7 +202,11 @@ export default function Session({
         </div>
 
         {resting ? (
-          <div className="rest-panel" aria-live="polite">
+          <div
+            className="rest-panel sess-swap"
+            key={`rest-${a.cursor}`}
+            aria-live="polite"
+          >
             <span className="rest-eyebrow">Rest</span>
             <div className="rest-time">{mmss(restLeft)}</div>
             <div className="rest-bar">
@@ -168,7 +217,11 @@ export default function Session({
             </span>
           </div>
         ) : (
-          <div className="target-card" aria-live="polite">
+          <div
+            className="target-card sess-swap"
+            key={`set-${a.cursor}-${setIdx}`}
+            aria-live="polite"
+          >
             {t && (
               <div className="target-stats" role="group">
                 <SetRoller current={setIdx + 1} total={t.sets} />
@@ -247,6 +300,14 @@ export default function Session({
           </button>
         </div>
       </div>
+
+      {pop > 0 && (
+        <div className="set-pop" key={pop} aria-hidden="true">
+          <span className="set-pop-badge">
+            <CheckIcon />
+          </span>
+        </div>
+      )}
     </div>
   )
 }

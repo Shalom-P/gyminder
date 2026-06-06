@@ -51,6 +51,7 @@ export default function ScheduleBuilder({
       </div>
 
       <div className="body scroll">
+        <div className="builder-step reveal" key={stepIdx}>
         {days == null ? (
           <>
             <div style={{ marginTop: 8 }}>
@@ -107,6 +108,7 @@ export default function ScheduleBuilder({
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   )

@@ -79,7 +79,7 @@ export default function Settings({
             </button>
           </div>
           {set.custom && (
-            <>
+            <div className="reveal">
               <div className="set-row">
                 <span className="k">Sets</span>
                 <Stepper
@@ -98,7 +98,7 @@ export default function Settings({
                   onChange={(v) => setTargets({ reps: v })}
                 />
               </div>
-            </>
+            </div>
           )}
         </div>
 

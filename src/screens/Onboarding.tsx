@@ -107,7 +107,7 @@ export default function Onboarding() {
         </div>
       </div>
       <div className="body">
-        <div style={{ marginTop: 8 }}>
+        <div className="reveal" style={{ marginTop: 8 }}>
           <span className="eyebrow">
             Step {step + 1} of {STEPS.length}
           </span>
@@ -119,7 +119,7 @@ export default function Onboarding() {
           </p>
         </div>
         <div className="spacer" />
-        <div className="list">
+        <div className="list reveal">
           {current.options.map((o) => (
             <button
               key={String(o.value)}
