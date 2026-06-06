@@ -1,3 +1,4 @@
+import { type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getActiveSplit } from '../data/splits'
@@ -16,6 +17,36 @@ function greeting(): string {
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
 }
+
+// ---- Recovery "heat" ramp ---------------------------------------------------
+// The recovering ring reads two ways at once: its arc LENGTH is how far recovery
+// has progressed, and its HUE is how recovered the body is — coral when freshly
+// trained (don't train this yet) → amber mid-recovery → emerald when nearly
+// ready. This mirrors the recovery-score colour language people already know
+// from wearables, so the state is legible at a glance.
+type RGB = [number, number, number]
+const REC_RAMP: Array<[number, RGB]> = [
+  [0.0, [244, 63, 94]], // coral — depleted, just trained
+  [0.5, [251, 191, 36]], // amber — recovering
+  [1.0, [52, 211, 153]] // emerald — recovered, almost ready
+]
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+const mix = (a: RGB, b: RGB, t: number): RGB => [
+  Math.round(lerp(a[0], b[0], t)),
+  Math.round(lerp(a[1], b[1], t)),
+  Math.round(lerp(a[2], b[2], t))
+]
+function recoveryHue(frac: number): RGB {
+  const t = Math.min(1, Math.max(0, frac))
+  for (let i = 0; i < REC_RAMP.length - 1; i++) {
+    const [p0, c0] = REC_RAMP[i]
+    const [p1, c1] = REC_RAMP[i + 1]
+    if (t <= p1) return mix(c0, c1, (t - p0) / (p1 - p0))
+  }
+  return REC_RAMP[REC_RAMP.length - 1][1]
+}
+const css = (c: RGB, a = 1) =>
+  a === 1 ? `rgb(${c[0]} ${c[1]} ${c[2]})` : `rgb(${c[0]} ${c[1]} ${c[2]} / ${a})`
 
 export default function Home({
   onStart,
@@ -43,6 +74,22 @@ export default function Home({
   const C = 2 * Math.PI * R
   const offset = C * (1 - frac)
 
+  // Everything on the recovering screen is a function of ONE value: how far the
+  // ring has filled (coverage). It picks the hue, which we hand to the whole
+  // frame as CSS custom properties — so the ring, pill, countdown, accent, the
+  // Start button and the ambient glow all move together as recovery progresses.
+  const coverage = frac
+  const hue = recoveryHue(coverage)
+  const palette = {
+    '--rc': css(hue),
+    '--rc-light': css(mix(hue, [255, 255, 255], 0.16)),
+    '--rc-deep': css(mix(hue, [0, 0, 0], 0.14)),
+    '--rc-ink': css(mix(hue, [0, 0, 0], 0.8)),
+    '--rc-glow': css(hue, 0.5),
+    '--rc-wash': css(hue, 0.14),
+    '--rc-veil': css(hue, 0.22) // faint ambient tint for the header
+  } as CSSProperties
+
   function go() {
     start()
     onStart()
@@ -68,13 +115,16 @@ export default function Home({
   const headline = isReady ? 'Recovered and ready' : 'Recovery in progress'
 
   return (
-    <div className="frame tabbed">
+    <div
+      className={`frame tabbed${isReady ? '' : ' recovering'}`}
+      style={isReady ? undefined : palette}
+    >
       <div className="top">
         <span className="brand">
           <BrandMark />
           Gyminder
         </span>
-        <span className={`pill${isReady ? ' ok' : ''}`}>
+        <span className={`pill${isReady ? ' ok' : ' rest'}`}>
           <span className="dot" />
           {isReady ? 'Ready to train' : 'Recovering'}
         </span>
@@ -93,13 +143,13 @@ export default function Home({
           <div className={`ring-wrap${isReady ? ' charged' : ''}`}>
             <svg viewBox="0 0 100 100">
               <defs>
-                <linearGradient id="ringgrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="var(--accent)" />
-                  <stop offset="100%" stopColor="var(--accent-2)" />
-                </linearGradient>
                 <linearGradient id="ringgradok" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="var(--accent-2)" />
                   <stop offset="100%" stopColor="var(--accent)" />
+                </linearGradient>
+                <linearGradient id="ringgradrest" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="var(--rc-light)" />
+                  <stop offset="100%" stopColor="var(--rc-deep)" />
                 </linearGradient>
               </defs>
               <circle
@@ -124,7 +174,7 @@ export default function Home({
             <div className="ring-center">
               <span className="ring-label">Next session</span>
               <span className="ring-big">{day?.label}</span>
-              <span className="ring-sub">
+              <span className={`ring-sub${isReady ? '' : ' rest'}`}>
                 {isReady
                   ? 'Recovered'
                   : `Ready in ${formatIn(ready.readyAt - now)}`}
