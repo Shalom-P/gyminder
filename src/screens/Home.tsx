@@ -26,9 +26,9 @@ function greeting(): string {
 // from wearables, so the state is legible at a glance.
 type RGB = [number, number, number]
 const REC_RAMP: Array<[number, RGB]> = [
-  [0.0, [244, 63, 94]], // coral — depleted, just trained
-  [0.5, [251, 191, 36]], // amber — recovering
-  [1.0, [52, 211, 153]] // emerald — recovered, almost ready
+  [0.0, [255, 107, 90]], // coral — depleted, just trained
+  [0.5, [255, 194, 77]], // amber — recovering
+  [1.0, [191, 232, 90]] // lime-green — nearly recovered, charging toward the accent
 ]
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const mix = (a: RGB, b: RGB, t: number): RGB => [
@@ -158,7 +158,7 @@ export default function Home({
                 cy="50"
                 r={R}
                 fill="none"
-                strokeWidth="9"
+                strokeWidth="6"
               />
               <circle
                 className={`ring-arc${isReady ? ' charged' : ''}`}
@@ -166,7 +166,7 @@ export default function Home({
                 cy="50"
                 r={R}
                 fill="none"
-                strokeWidth="9"
+                strokeWidth="6"
                 strokeDasharray={C}
                 strokeDashoffset={offset}
               />
