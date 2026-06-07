@@ -376,6 +376,10 @@ input {
 /* Keep the slide at 60fps: while a screen is mid-transition, drop the costly
    blur / drop-shadow filters and pause infinite + dash animations. */
 .nav-animating .ring-wrap.charged::before,
+.nav-animating .ring-tip-dot,
+.nav-animating .pill.ok .dot,
+.nav-animating .rest-ring::before,
+.nav-animating .btn.primary::after,
 .nav-animating .set-track .seg.cur,
 .nav-animating .demo-photo-b,
 .nav-animating .exa-j,
@@ -574,6 +578,8 @@ input {
 }
 
 .btn {
+  position: relative;
+  overflow: hidden;
   border: none;
   border-radius: var(--r-md);
   min-height: 58px;
@@ -586,7 +592,7 @@ input {
   color: var(--text);
   cursor: pointer;
   box-shadow: inset 0 0 0 1px var(--line);
-  transition: transform 0.16s var(--ease), background 0.25s var(--ease),
+  transition: transform 0.16s var(--ease-pop), background 0.25s var(--ease),
     filter 0.25s, box-shadow 0.3s var(--ease);
 }
 .btn:active {
@@ -594,6 +600,24 @@ input {
 }
 .btn:not(.primary):not(.ghost):not(.danger):hover {
   background: var(--fill-3);
+}
+
+/* Label cross-fade when the primary CTA swaps role (Complete set <-> Skip rest)
+   — the persistent button keeps its press feel while the words exchange. */
+.btn-swap {
+  display: inline-block;
+  animation: btnSwapIn 0.3s var(--ease) both;
+}
+@keyframes btnSwapIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-swap {
+    animation: none;
+  }
 }
 
 .btn.primary {
@@ -606,6 +630,39 @@ input {
 }
 .btn.primary:active {
   filter: brightness(1.04);
+}
+/* a slow sheen sweep keeps the primary CTA reading as "live / ready" */
+.btn.primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  left: -60%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: sheen 4.6s var(--ease-out) 1.2s infinite;
+  pointer-events: none;
+}
+@keyframes sheen {
+  0% {
+    left: -60%;
+  }
+  22%,
+  100% {
+    left: 150%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary::after {
+    animation: none;
+    display: none;
+  }
 }
 
 .btn.ghost {
@@ -741,6 +798,24 @@ input {
   border-radius: var(--r-pill);
   background: currentColor;
 }
+/* the "ready to train" dot pulses — a quiet live signal that it's go-time */
+.pill.ok .dot {
+  animation: livePulse 2s var(--ease-out) infinite;
+}
+@keyframes livePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill.ok .dot {
+    animation: none;
+  }
+}
 
 .note {
   background: var(--accent-wash);
@@ -825,6 +900,74 @@ input {
 .ring-arc.charged {
   stroke: url(#ringgradok); /* recovered & ready — lime */
   filter: drop-shadow(0 0 9px var(--accent-glow));
+}
+/* draw-on: the arc sweeps from empty to its rendered coverage on mount.
+   C for r=44 = 2*pi*44 ~= 276.46. Skipped on a hidden boot so it never sticks
+   empty (see the boot-visibility guard in index.html). Coexists with the
+   stroke-dashoffset transition above, which handles later live updates. */
+.ring-arc {
+  animation: ringDraw 1.15s var(--ease) 0.12s both;
+}
+@keyframes ringDraw {
+  from {
+    stroke-dashoffset: 276.46;
+  }
+}
+html.boot-hidden .ring-arc {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc {
+    animation: none;
+  }
+}
+
+/* a glowing dot rides the head of the arc while recovery is in progress, in the
+   same coverage hue as the arc; it sweeps round on mount, then breathes. */
+.ring-tip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition: transform 1.2s var(--ease);
+  animation: ringTipSweep 1.15s var(--ease) 0.12s both;
+}
+@keyframes ringTipSweep {
+  from {
+    transform: rotate(0deg);
+  }
+}
+html.boot-hidden .ring-tip {
+  animation: none;
+}
+.ring-tip-dot {
+  position: absolute;
+  left: 50%;
+  top: 13px;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border-radius: var(--r-pill);
+  background: var(--rc);
+  box-shadow: 0 0 12px 2px var(--rc-glow);
+  animation: tipPulse 1.8s var(--ease-out) infinite;
+}
+@keyframes tipPulse {
+  0%,
+  100% {
+    transform: scale(0.82);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-tip,
+  .ring-tip-dot {
+    animation: none;
+  }
 }
 
 .ring-center {
@@ -981,15 +1124,59 @@ input {
     transform: scale(1.18);
   }
 }
+/* transform-only spring — never hides via opacity, so it can't strand blank */
 @keyframes pop {
-  from {
-    transform: scale(0.5);
-    opacity: 0;
+  0% {
+    transform: scale(0.55);
+  }
+  62% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 .success svg {
   width: 44px;
   height: 44px;
+}
+
+/* a radial lime confetti burst fans out behind the success badge on arrival */
+.success-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.burst {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.burst i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  animation: confetti 0.9s var(--ease-out) 0.1s both;
+}
+@keyframes confetti {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--cx), var(--cy)) scale(1) rotate(220deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .success,
@@ -997,6 +1184,10 @@ input {
     animation: none;
   }
   .success::after {
+    opacity: 0;
+  }
+  .burst i {
+    animation: none;
     opacity: 0;
   }
 }
@@ -1085,22 +1276,13 @@ input {
 }
 
 /* ---- in-session motion ----
-   The exercise header and the rest/set panels cross-dissolve + rise instead of
-   snapping. Keyed remounts in Session.tsx replay these on every set / exercise /
-   rest change. Quick + fully damped: smooth, never in the way. */
+   The exercise header rises + fades in on every exercise change (a keyed remount
+   in Session.tsx replays it); the set/rest panels cross-dissolve via .swap-stage
+   below. Quick + fully damped: smooth, never in the way. */
 @keyframes sessTopIn {
   from {
     opacity: 0;
     transform: translateY(6px);
-  }
-}
-.sess-swap {
-  animation: sessSwapIn 0.34s var(--ease) both;
-}
-@keyframes sessSwapIn {
-  from {
-    opacity: 0;
-    transform: translateY(9px) scale(0.992);
   }
 }
 @keyframes sessFade {
@@ -1132,8 +1314,7 @@ input {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sess-top,
-  .sess-swap {
+  .sess-top {
     animation: sessFade 0.18s ease both;
   }
 }
@@ -1490,45 +1671,153 @@ input {
   }
 }
 
+/* ---- swap stage: rollers <-> rest ring cross-dissolve ----
+   Both layers stay mounted and stacked in one grid cell (stable height, no
+   layout jump). Driven by keyframe animations rather than transitions, because
+   the 1s rest-timer re-render would interrupt a CSS transition mid-flight — an
+   animation keyed off the `.resting` class survives those re-renders. */
+.swap-stage {
+  display: grid;
+  min-height: 250px;
+}
+.swap-stage > .swap-layer {
+  grid-area: 1 / 1;
+  align-self: start;
+  animation-duration: 0.44s;
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+}
+/* idle: rollers shown, ring parked hidden */
+.swap-stage > .target-layer {
+  opacity: 1;
+  animation-name: layerIn;
+}
+.swap-stage > .rest-layer {
+  opacity: 0;
+  pointer-events: none;
+}
+/* resting: rollers fade + sink out, ring blooms in. Opacity is also set on the
+   cascade (not just the keyframe) so the settled state is correct even if the
+   animation is skipped/frozen — the keyframe only supplies the motion. */
+.swap-stage.resting > .target-layer {
+  opacity: 0;
+  animation-name: layerOut;
+  pointer-events: none;
+}
+.swap-stage.resting > .rest-layer {
+  opacity: 1;
+  animation-name: layerIn;
+  pointer-events: auto;
+}
+@keyframes layerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes layerOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swap-stage > .swap-layer {
+    animation-duration: 0.18s;
+  }
+  @keyframes layerIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes layerOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}
+
+/* ---- rest: a glowing circular countdown ring (borderless) ---- */
 .rest-panel {
-  background: var(--fill);
-  border: none;
-  border-radius: var(--r-lg);
-  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  box-shadow: inset 0 0 0 1px var(--line);
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 8px 0 0;
+}
+.rest-ring {
+  position: relative;
+  width: 196px;
+  height: 196px;
+}
+.rest-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.rest-ring .rt-track {
+  stroke: var(--fill-2);
+}
+.rest-ring .rt-arc {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+  transition: stroke-dashoffset 0.5s linear;
+}
+.rest-ring::before {
+  content: '';
+  position: absolute;
+  inset: 18%;
+  border-radius: var(--r-pill);
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 68%);
+  opacity: 0.34;
+  filter: blur(10px);
+  animation: auraBreathe 2.4s var(--ease-out) infinite;
+}
+.rest-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 .rest-eyebrow {
   color: var(--accent-text);
 }
 .rest-time {
-  font-size: 68px;
+  font-size: 52px;
   font-weight: var(--w-bold);
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--text);
-}
-.rest-bar {
-  width: 100%;
-  height: 5px;
-  background: var(--fill-2);
-  border-radius: var(--r-pill);
-  overflow: hidden;
-}
-.rest-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: var(--r-pill);
-  transition: width 0.5s linear;
 }
 .rest-next {
   font-size: var(--fs-sub);
   font-weight: var(--w-semi);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-ring::before {
+    animation: none;
+  }
 }
 
 /* ============================ EXERCISE DEMO ============================ */
@@ -1845,6 +2134,7 @@ input {
   z-index: 5;
 }
 .tab {
+  position: relative;
   flex: 1;
   background: none;
   border: none;
@@ -1853,15 +2143,16 @@ input {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  padding: 6px 0 2px;
+  padding: 8px 0 2px;
   color: var(--faint);
-  transition: color 0.3s var(--ease), transform 0.18s var(--ease);
+  transition: color 0.3s var(--ease), transform 0.18s var(--ease-pop);
 }
 .tab .ti {
   width: 26px;
   height: 26px;
   display: grid;
   place-items: center;
+  transition: transform 0.32s var(--ease-pop);
 }
 .tab .ti svg {
   width: 24px;
@@ -1875,6 +2166,34 @@ input {
 }
 .tab.active {
   color: var(--accent-text);
+}
+.tab.active .ti {
+  transform: translateY(-2px);
+}
+/* a small lime dot springs in above the active tab's icon */
+.tab.active::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  margin-left: -2.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: tabDot 0.4s var(--ease-pop) both;
+}
+@keyframes tabDot {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab.active::after {
+    animation: none;
+  }
 }
 .tab:active {
   transform: scale(0.92);

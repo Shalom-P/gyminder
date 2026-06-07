@@ -1,6 +1,23 @@
+import { type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { formatIn, nextReadyInfo } from '../engine/schedule'
 import { CheckIcon } from '../components/icons'
+import { CountUp } from '../components/CountUp'
+
+// Radial confetti fanning out behind the success badge. Deterministic (placed by
+// index, no randomness) so it's stable across re-renders; the motion is in CSS.
+const BURST = Array.from({ length: 14 }, (_, i) => {
+  const ang = (i / 14) * Math.PI * 2
+  const dist = 66 + (i % 3) * 18
+  return {
+    style: {
+      '--cx': `${Math.cos(ang) * dist}px`,
+      '--cy': `${Math.sin(ang) * dist}px`,
+      animationDelay: `${(i % 5) * 0.02}s`,
+      background: i % 3 === 0 ? 'var(--accent-2)' : 'var(--accent)'
+    } as CSSProperties
+  }
+})
 
 // Positive, competence-framed sign-offs (peak-end rule + self-determination
 // theory): celebrate the work done, never guilt. Chosen by session count so the
@@ -35,8 +52,15 @@ export default function Complete({ onHome }: { onHome: () => void }) {
       <div className="body">
         <div className="hero">
           <div className="complete-celebrate">
-            <div className="success">
-              <CheckIcon />
+            <div className="success-wrap">
+              <div className="burst" aria-hidden="true">
+                {BURST.map((p, i) => (
+                  <i key={i} style={p.style} />
+                ))}
+              </div>
+              <div className="success">
+                <CheckIcon />
+              </div>
             </div>
             <h1 className="h1" style={{ textAlign: 'center' }}>
               {last?.dayLabel} done
@@ -51,7 +75,7 @@ export default function Complete({ onHome }: { onHome: () => void }) {
           <div className="home-meta">
             <div className="hm-item">
               <b>
-                {done}
+                <CountUp value={done} dur={700} />
                 <i>/{total}</i>
               </b>
               <span>Exercises</span>

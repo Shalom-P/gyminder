@@ -111,6 +111,12 @@ export default function Session({
     restEndsAt != null ? Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000)) : 0
   const resting = restLeft > 0
   const restPct = restTotal > 0 ? (restLeft / restTotal) * 100 : 0
+  // Rest ring geometry (r=44 matches the SVG below). The arc shrinks as the
+  // countdown runs; the layer is hidden when not resting so the empty state
+  // (offset = full circumference) is never seen.
+  const REST_R = 44
+  const restC = 2 * Math.PI * REST_R
+  const restArcOffset = restC * (1 - restPct / 100)
   const doneLabel = !isLastSet
     ? 'Complete set'
     : isLastExercise
@@ -201,70 +207,89 @@ export default function Session({
           </div>
         </div>
 
-        {resting ? (
-          <div
-            className="rest-panel sess-swap"
-            key={`rest-${a.cursor}`}
-            aria-live="polite"
-          >
-            <span className="rest-eyebrow">Rest</span>
-            <div className="rest-time">{mmss(restLeft)}</div>
-            <div className="rest-bar">
-              <div className="rest-bar-fill" style={{ width: `${restPct}%` }} />
-            </div>
-            <span className="rest-next">
-              Up next · Set {setIdx + 1} of {totalSets}
-            </span>
-          </div>
-        ) : (
-          <div
-            className="target-card sess-swap"
-            key={`set-${a.cursor}-${setIdx}`}
-            aria-live="polite"
-          >
-            {t && (
-              <div className="target-stats" role="group">
-                <SetRoller current={setIdx + 1} total={t.sets} />
-                {/* Timed holds keep a duration wheel; rep work no longer shows a
-                    rep counter — "Complete set" logs the programmed target. */}
-                {t.isTime && (
-                  <>
-                    <div className="tstat-div" aria-hidden="true" />
-                    <ValueRoller
-                      label="Hold"
-                      value={repsVal}
-                      min={0}
-                      max={repMax}
-                      step={1}
-                      suffix="sec"
-                      onChange={setReps}
-                    />
-                  </>
-                )}
-                <div className="tstat-div" aria-hidden="true" />
-                {t.bodyweight ? (
-                  <div className="tstat">
-                    <span className="tstat-lbl">Weight</span>
-                    <div className="roller-static">
-                      <span className="tstat-bw">Body</span>
+        {/* Rollers and the rest ring share one stacked grid cell and cross-
+            dissolve as `resting` toggles — stable height, no layout jump. */}
+        <div className={`swap-stage${resting ? ' resting' : ''}`}>
+          <div className="swap-layer target-layer" aria-hidden={resting}>
+            <div className="target-card">
+              {t && (
+                <div className="target-stats" role="group">
+                  <SetRoller current={setIdx + 1} total={t.sets} />
+                  {/* Timed holds keep a duration wheel; rep work no longer shows
+                      a rep counter — "Complete set" logs the programmed target. */}
+                  {t.isTime && (
+                    <>
+                      <div className="tstat-div" aria-hidden="true" />
+                      <ValueRoller
+                        label="Hold"
+                        value={repsVal}
+                        min={0}
+                        max={repMax}
+                        step={1}
+                        suffix="sec"
+                        onChange={setReps}
+                      />
+                    </>
+                  )}
+                  <div className="tstat-div" aria-hidden="true" />
+                  {t.bodyweight ? (
+                    <div className="tstat">
+                      <span className="tstat-lbl">Weight</span>
+                      <div className="roller-static">
+                        <span className="tstat-bw">Body</span>
+                      </div>
+                      <span className="roller-total">&nbsp;</span>
                     </div>
-                    <span className="roller-total">&nbsp;</span>
-                  </div>
-                ) : (
-                  <ValueRoller
-                    label="Weight"
-                    value={weightVal}
-                    min={0}
-                    max={weightMax}
-                    step={units === 'lb' ? 5 : 2.5}
-                    suffix={t.units}
-                    onChange={setWeight}
-                  />
-                )}
-              </div>
-            )}
+                  ) : (
+                    <ValueRoller
+                      label="Weight"
+                      value={weightVal}
+                      min={0}
+                      max={weightMax}
+                      step={units === 'lb' ? 5 : 2.5}
+                      suffix={t.units}
+                      onChange={setWeight}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+
+          <div className="swap-layer rest-layer" aria-hidden={!resting}>
+            <div className="rest-panel">
+              <div className="rest-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle
+                    className="rt-track"
+                    cx="50"
+                    cy="50"
+                    r={REST_R}
+                    fill="none"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    className="rt-arc"
+                    cx="50"
+                    cy="50"
+                    r={REST_R}
+                    fill="none"
+                    strokeWidth="7"
+                    strokeDasharray={restC}
+                    strokeDashoffset={restArcOffset}
+                  />
+                </svg>
+                <div className="rest-center">
+                  <span className="rest-eyebrow">Rest</span>
+                  <div className="rest-time">{mmss(restLeft)}</div>
+                </div>
+              </div>
+              <span className="rest-next">
+                Up next · Set {setIdx + 1} of {totalSets}
+              </span>
+            </div>
+          </div>
+        </div>
 
         {showDemo && (
           <div className="demo-reveal">
@@ -286,15 +311,16 @@ export default function Session({
         <div className="spacer" />
 
         <div className="actions">
-          {resting ? (
-            <button className="btn primary" onClick={() => setRest(null)}>
-              Skip rest
-            </button>
-          ) : (
-            <button className="btn primary" onClick={() => completeSet()}>
-              {doneLabel}
-            </button>
-          )}
+          {/* One persistent CTA whose label cross-fades between roles, so the
+              button keeps its press feel across the set <-> rest transition. */}
+          <button
+            className="btn primary"
+            onClick={() => (resting ? setRest(null) : completeSet())}
+          >
+            <span className="btn-swap" key={resting ? 'skip' : 'done'}>
+              {resting ? 'Skip rest' : doneLabel}
+            </span>
+          </button>
           <button className="btn ghost" onClick={skip}>
             Skip exercise
           </button>

@@ -14,6 +14,27 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Gyminder</title>
+    <script>
+      /* Boot-visibility guard. Browsers FREEZE css animations on a hidden page,
+         which would strand a draw-on animation (e.g. the recovery ring) at its
+         empty first frame. If we first paint hidden, mark <html> so those few
+         entrance animations are skipped (content shows immediately); re-enable
+         once visible so later in-app motion still plays. Paired with the
+         `html.boot-hidden ...` rules in styles.css. */
+      (function () {
+        var root = document.documentElement
+        function sync() {
+          if (document.visibilityState === 'visible') {
+            root.classList.remove('boot-hidden')
+            document.removeEventListener('visibilitychange', sync)
+          }
+        }
+        if (document.visibilityState !== 'visible') {
+          root.classList.add('boot-hidden')
+          document.addEventListener('visibilitychange', sync)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
