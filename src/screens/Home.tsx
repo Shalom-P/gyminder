@@ -10,6 +10,7 @@ import {
   upcomingDay
 } from '../engine/schedule'
 import { BrandMark } from '../components/icons'
+import { CountUp } from '../components/CountUp'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -73,6 +74,9 @@ export default function Home({
   const R = 44
   const C = 2 * Math.PI * R
   const offset = C * (1 - frac)
+  // The recovering tip dot rides the head of the arc — placed by rotating its
+  // wrapper to where the filled arc ends (the ring SVG starts at 12 o'clock).
+  const tipDeg = frac * 360
 
   // Everything on the recovering screen is a function of ONE value: how far the
   // ring has filled (coverage). It picks the hue, which we hand to the whole
@@ -171,6 +175,15 @@ export default function Home({
                 strokeDashoffset={offset}
               />
             </svg>
+            {!isReady && (
+              <div
+                className="ring-tip"
+                style={{ transform: `rotate(${tipDeg}deg)` }}
+                aria-hidden="true"
+              >
+                <span className="ring-tip-dot" />
+              </div>
+            )}
             <div className="ring-center">
               <span className="ring-label">Next session</span>
               <span className="ring-big">{day?.label}</span>
@@ -184,17 +197,23 @@ export default function Home({
 
           <div className="home-meta">
             <div className="hm-item">
-              <b>{exCount}</b>
+              <b>
+                <CountUp value={exCount} />
+              </b>
               <span>exercises</span>
             </div>
             <span className="hm-sep" />
             <div className="hm-item">
-              <b>{setCount}</b>
+              <b>
+                <CountUp value={setCount} />
+              </b>
               <span>sets</span>
             </div>
             <span className="hm-sep" />
             <div className="hm-item">
-              <b>{estMin}</b>
+              <b>
+                <CountUp value={estMin} />
+              </b>
               <span>minutes</span>
             </div>
           </div>
