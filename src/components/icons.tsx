@@ -55,11 +55,14 @@ export function ChevronIcon() {
   )
 }
 
+/* pathLength=1 normalises the stroke for draw-on animations (Session's set-pop
+   dashes it 1→0); it has no effect where the check renders statically. */
 export function CheckIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M5 12.5l4.5 4.5L19 7"
+        pathLength={1}
         stroke="currentColor"
         strokeWidth="3"
         strokeLinecap="round"

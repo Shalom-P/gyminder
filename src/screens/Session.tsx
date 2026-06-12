@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
@@ -28,9 +28,11 @@ function DigitRoll({ d }: { d: number }) {
   )
 }
 
-// How long the completion checkmark plays before the next state takes over.
-// Kept brief (Apple HIG: quick + purposeful for frequent interactions).
-const POP_MS = 360
+// When the real advance fires during the completion morph (full animation is
+// 0.56s — see .set-pop in styles.css): timed so the set-track segment locks in
+// just as the condensed dot lands on it. Kept brief (Apple HIG: quick +
+// purposeful for frequent interactions); a second tap skips straight through.
+const POP_MS = 500
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -48,11 +50,19 @@ export default function Session({
   const [reps, setReps] = useState<number | null>(null)
   const [weight, setWeight] = useState<number | null>(null)
   const [showDemo, setShowDemo] = useState(false)
+  // The demo mounts on first open (its photos are hot-linked — don't fetch for
+  // exercises never demoed) and stays mounted so hiding can cross-dissolve.
+  const [demoMounted, setDemoMounted] = useState(false)
   const [, setTick] = useState(0)
-  // Completion-beat state: `pop` increments to replay the checkmark; `pendingRef`
-  // holds the timer that fires the actual advance once the beat has played.
+  // Completion-beat state: `pop` increments to replay the morph; `fly` is the
+  // measured vector from screen centre to the current set-track segment (where
+  // the badge banks itself); `pendingRef` holds the timer that fires the actual
+  // advance once the beat has played.
   const [pop, setPop] = useState(0)
+  const [fly, setFly] = useState<{ x: number; y: number } | null>(null)
   const pendingRef = useRef<number | null>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
   useEffect(
     () => () => {
       if (pendingRef.current != null) window.clearTimeout(pendingRef.current)
@@ -68,9 +78,10 @@ export default function Session({
   const setIdx = a?.setIdx ?? 0
   const restEndsAt = a?.restEndsAt ?? null
 
-  // Collapse the inline demo when the workout advances to the next exercise.
+  // Collapse the demo when the workout advances to the next exercise.
   useEffect(() => {
     setShowDemo(false)
+    setDemoMounted(false)
   }, [cursor])
 
   // Reset the dialed reps/weight at the start of every set.
@@ -126,12 +137,16 @@ export default function Session({
     restEndsAt != null ? Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000)) : 0
   const resting = restLeft > 0
   const restPct = restTotal > 0 ? (restLeft / restTotal) * 100 : 0
-  // Rest ring geometry (r=44 matches the SVG below). The arc shrinks as the
-  // countdown runs; the layer is hidden when not resting so the empty state
-  // (offset = full circumference) is never seen.
+  // Rest ring geometry (r=44 matches the SVG below). The dial opens in a 40°
+  // notch at 12 o'clock where the REST label is engraved (a real break in the
+  // scale, speedometer-style), so track and arc sweep 320° between the notch
+  // edges — rotate(20°) on both starts them at the notch's right edge. The arc
+  // shrinks as the countdown runs; the layer is hidden when not resting so the
+  // empty state (offset = full sweep) is never seen.
   const REST_R = 44
   const restC = 2 * Math.PI * REST_R
-  const restArcOffset = restC * (1 - restPct / 100)
+  const restArcLen = restC * (320 / 360)
+  const restArcOffset = restArcLen * (1 - restPct / 100)
   const doneLabel = !isLastSet
     ? 'Complete set'
     : isLastExercise
@@ -147,7 +162,11 @@ export default function Session({
     if (isLastExercise) onComplete()
   }
   // The real advance — mid-exercise: next set + start rest; last set: log it.
+  // Closes the demo first: the set is done, the stage belongs to what's next
+  // (and the rest layer may only ever bloom in over a closed demo — the CSS
+  // layer rules rely on it; see "demoing" in styles.css).
   function advanceNow(repsCount?: number) {
+    setShowDemo(false)
     if (ex && !isLastSet) {
       advanceSet(Date.now() + restSeconds(ex) * 1000)
       return
@@ -165,8 +184,9 @@ export default function Session({
     mark('skip')
     if (isLastExercise) onComplete()
   }
-  // Completing a set plays a brief Apple-style confirmation, then advances to the
-  // next state (rest timer / next exercise). It's interruptible (a second tap
+  // Completing a set plays a morph confirmation — the check draws itself in,
+  // then condenses to a dot that banks into the current set-track segment, so
+  // the confirmation visibly becomes progress. It's interruptible (a second tap
   // jumps straight through), skipped under Reduce Motion, and skipped on the very
   // last set — the Complete screen is already that celebration (peak-end rule).
   function completeSet(repsCount?: number) {
@@ -178,6 +198,20 @@ export default function Session({
     if ((isLastSet && isLastExercise) || prefersReducedMotion()) {
       advanceNow(repsCount)
       return
+    }
+    // Aim the morph's exit at the current segment, measured at tap time; if
+    // either rect is unavailable the CSS falls back to a drift-up dissolve.
+    const frameEl = frameRef.current
+    const segEl = trackRef.current?.children[setIdx] as HTMLElement | undefined
+    if (frameEl && segEl) {
+      const f = frameEl.getBoundingClientRect()
+      const s = segEl.getBoundingClientRect()
+      setFly({
+        x: s.left + s.width / 2 - (f.left + f.width / 2),
+        y: s.top + s.height / 2 - (f.top + f.height / 2)
+      })
+    } else {
+      setFly(null)
     }
     setPop((n) => n + 1)
     pendingRef.current = window.setTimeout(() => {
@@ -191,7 +225,7 @@ export default function Session({
   }
 
   return (
-    <div className="frame push">
+    <div className="frame push" ref={frameRef}>
       <div className="session-head">
         <button className="icon-btn" onClick={quit} aria-label="Quit workout">
           <XIcon />
@@ -210,6 +244,7 @@ export default function Session({
           <h1 className="h1">{ex?.name}</h1>
           <div
             className="set-track"
+            ref={trackRef}
             role="img"
             aria-label={`Set ${setIdx + 1} of ${totalSets}`}
           >
@@ -222,10 +257,13 @@ export default function Session({
           </div>
         </div>
 
-        {/* Rollers and the rest ring share one stacked grid cell and cross-
-            dissolve as `resting` toggles — stable height, no layout jump. */}
-        <div className={`swap-stage${resting ? ' resting' : ''}`}>
-          <div className="swap-layer target-layer" aria-hidden={resting}>
+        {/* Rollers, rest ring and the demo clip share one stacked grid cell and
+            cross-dissolve as `resting`/`demoing` toggle — stable height, no
+            layout jump, so the actions below never leave the screen. */}
+        <div
+          className={`swap-stage${resting ? ' resting' : ''}${showDemo ? ' demoing' : ''}`}
+        >
+          <div className="swap-layer target-layer" aria-hidden={resting || showDemo}>
             <div className="target-card">
               {t && (
                 <div className="target-stats" role="group">
@@ -271,7 +309,7 @@ export default function Session({
             </div>
           </div>
 
-          <div className="swap-layer rest-layer" aria-hidden={!resting}>
+          <div className="swap-layer rest-layer" aria-hidden={!resting || showDemo}>
             <div
               className={`rest-panel${
                 resting && restLeft <= 5 ? ' closing' : ''
@@ -286,6 +324,8 @@ export default function Session({
                     r={REST_R}
                     fill="none"
                     strokeWidth="7"
+                    strokeDasharray={`${restArcLen} ${restC}`}
+                    transform="rotate(20 50 50)"
                   />
                   {/* chronograph tick track — 60 hairline marks (C(r=36)/60 ≈ 3.77) */}
                   <circle
@@ -304,12 +344,13 @@ export default function Session({
                     r={REST_R}
                     fill="none"
                     strokeWidth="7"
-                    strokeDasharray={restC}
+                    strokeDasharray={`${restArcLen} ${restC}`}
                     strokeDashoffset={restArcOffset}
+                    transform="rotate(20 50 50)"
                   />
                 </svg>
+                <span className="rest-eyebrow">Rest</span>
                 <div className="rest-center">
-                  <span className="rest-eyebrow">Rest</span>
                   <div
                     className="rest-time"
                     role="timer"
@@ -327,16 +368,22 @@ export default function Session({
               </span>
             </div>
           </div>
+
+          <div className="swap-layer demo-layer" aria-hidden={!showDemo}>
+            {demoMounted && (
+              <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} clipOnly />
+            )}
+          </div>
         </div>
 
-        {showDemo && (
-          <div className="demo-reveal">
-            <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} clipOnly />
-          </div>
-        )}
-
         <div className="sess-links">
-          <button className="btn ghost" onClick={() => setShowDemo(!showDemo)}>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setDemoMounted(true)
+              setShowDemo(!showDemo)
+            }}
+          >
             {showDemo ? 'Hide' : 'Demo'}
           </button>
           {info && (
@@ -366,7 +413,16 @@ export default function Session({
       </div>
 
       {pop > 0 && (
-        <div className="set-pop" key={pop} aria-hidden="true">
+        <div
+          className="set-pop"
+          key={pop}
+          aria-hidden="true"
+          style={
+            fly
+              ? ({ '--fly-x': `${fly.x}px`, '--fly-y': `${fly.y}px` } as CSSProperties)
+              : undefined
+          }
+        >
           <span className="set-pop-badge">
             <CheckIcon />
           </span>
