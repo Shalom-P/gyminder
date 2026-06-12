@@ -1374,7 +1374,11 @@ html.boot-hidden .list > * {
   }
 }
 
-/* Set-completion confirmation: a quick spring checkmark. */
+/* Set-completion confirmation — a three-beat morph. The badge springs in while
+   the check strokes itself on (0–260ms), holds a beat, then condenses to a dot
+   that flies into the current set-track segment (--fly-x/y, measured at tap
+   time in Session.tsx) and dissolves just as that segment locks in: the
+   confirmation visibly becomes the progress mark. */
 .set-pop {
   position: absolute;
   inset: 0;
@@ -1394,48 +1398,84 @@ html.boot-hidden .list > * {
   color: var(--ink-on-accent);
   box-shadow: 0 18px 48px -16px var(--accent-glow),
     inset 0 1px 0 rgba(255, 255, 255, 0.32);
-  animation: setPopIn 0.52s var(--ease-pop) both;
+  animation: setMorph 0.56s var(--ease-pop) both;
+  will-change: transform, opacity;
 }
 .set-pop-badge svg {
   width: 40px;
   height: 40px;
+}
+/* The check draws on (dash over the normalised pathLength=1), then fades just
+   before departure so a clean lime dot makes the flight. Hidden until its
+   delay elapses (fill-mode: both) — round linecaps can leak a dot at offset 1. */
+.set-pop-badge svg path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: setCheckDraw 0.2s var(--ease-out) 0.07s both,
+    setCheckFade 0.12s ease 0.33s forwards;
 }
 .set-pop-badge::after {
   content: '';
   position: absolute;
   inset: -8px;
   border-radius: var(--r-pill);
-  border: 2px solid var(--accent);
-  animation: setPopRing 0.55s var(--ease) both;
+  border: 1.5px solid var(--accent);
+  animation: setPopRing 0.42s var(--ease) both;
 }
-@keyframes setPopIn {
+/* form (spring, 0–46%) → hold (46–59%) → condense + fly (59–100%) */
+@keyframes setMorph {
   0% {
     opacity: 0;
-    transform: scale(0.5);
+    transform: translate(0, 0) scale(0.4);
+    animation-timing-function: var(--ease-pop);
   }
-  38% {
+  14% {
     opacity: 1;
-    transform: scale(1.06);
   }
-  60% {
-    transform: scale(1);
+  46% {
+    transform: translate(0, 0) scale(1);
+    animation-timing-function: linear;
   }
-  78% {
+  59% {
     opacity: 1;
+    transform: translate(0, 0) scale(1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.15, 1);
+  }
+  88% {
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.15, 1);
   }
   100% {
     opacity: 0;
-    transform: scale(1);
+    transform: translate(var(--fly-x, 0px), var(--fly-y, -120px)) scale(0.08);
+  }
+}
+@keyframes setCheckDraw {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+@keyframes setCheckFade {
+  to {
+    opacity: 0;
   }
 }
 @keyframes setPopRing {
   0% {
-    opacity: 0.6;
-    transform: scale(0.7);
+    opacity: 0.7;
+    transform: scale(0.72);
   }
   100% {
     opacity: 0;
-    transform: scale(1.28);
+    transform: scale(1.3);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1764,6 +1804,35 @@ html.boot-hidden .list > * {
   animation-name: layerIn;
   pointer-events: auto;
 }
+/* demoing: the demo clip takes the stage in place of whichever layer is up —
+   content never grows below the stage, so the actions stay pinned on screen.
+   Layer rules are transition-aware: layerOut's keyframe starts at opacity 1,
+   so it may only be applied to a layer that was actually visible in the prior
+   state (a hidden layer given layerOut would flash in). Hence the rest layer
+   only fades on .resting.demoing — reachable solely from .resting, because
+   completing a set auto-closes the demo (advanceNow in Session.tsx). The
+   demo-layer's base layerOut is what lets a hide dissolve; on screen mount it
+   plays over an empty layer (nothing mounted until the first Demo tap). */
+.swap-stage > .demo-layer {
+  opacity: 0;
+  animation-name: layerOut;
+  pointer-events: none;
+}
+.swap-stage.demoing > .target-layer {
+  opacity: 0;
+  animation-name: layerOut;
+  pointer-events: none;
+}
+.swap-stage.demoing > .demo-layer {
+  opacity: 1;
+  animation-name: layerIn;
+  pointer-events: auto;
+}
+.swap-stage.resting.demoing > .rest-layer {
+  opacity: 0;
+  animation-name: layerOut;
+  pointer-events: none;
+}
 @keyframes layerIn {
   from {
     opacity: 0;
@@ -1827,6 +1896,7 @@ html.boot-hidden .list > * {
 }
 .rest-ring .rt-track {
   stroke: var(--fill-2);
+  stroke-linecap: round; /* finished ends where the scale opens at the notch */
 }
 /* chronograph tick track — 60 hairline marks inside the countdown band */
 .rest-ring .rt-ticks {
@@ -1857,7 +1927,16 @@ html.boot-hidden .list > * {
   justify-content: center;
   gap: 4px;
 }
+/* The dial's label sits engraved in the 40° notch at 12 o'clock — track and
+   arc both stop at its edges (geometry in Session.tsx) — so the centre stays
+   a pure meter. Centred on the track's radius line with the .brand.center
+   optical rule (half letter-space cancels the tracking's trailing gap). */
 .rest-eyebrow {
+  position: absolute;
+  top: 6%; /* (50 − r44) / 100 of the box = the track centreline */
+  left: 50%;
+  transform: translate(calc(-50% + 0.5 * var(--ls-over)), -50%);
+  white-space: nowrap;
   color: var(--accent-text);
 }
 .rest-time {
@@ -1937,24 +2016,6 @@ html.boot-hidden .list > * {
 .sess-links .btn {
   width: auto;
   padding: 0;
-}
-.demo-reveal {
-  animation: demoReveal 0.42s var(--ease) both;
-}
-@keyframes demoReveal {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .demo-reveal {
-    animation: none;
-  }
 }
 .demo-stage {
   position: relative;
