@@ -3,6 +3,7 @@ import { PATTERNS, getCoaching } from '../data/coaching'
 import { targetParts } from '../engine/progression'
 import { useStore } from '../state/store'
 import ExerciseDemo from '../components/ExerciseDemo'
+import { XIcon } from '../components/icons'
 
 function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -35,18 +36,18 @@ export default function ExerciseDetail({
     <div className="frame push">
       <div className="top">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ✕
+          <XIcon />
         </button>
-        <span className="brand">How to do it</span>
+        <span className="brand center">How to do it</span>
       </div>
 
       <div className="body scroll">
-        <h1 className="h1">{ex.name}</h1>
-        <p className="muted">{info.summary}</p>
-
-        <div style={{ marginTop: 4 }}>
-          <ExerciseDemo exerciseId={exerciseId} label={ex.name} clipOnly />
+        <div className="screen-head">
+          <h1 className="h1">{ex.name}</h1>
+          <p className="muted">{info.summary}</p>
         </div>
+
+        <ExerciseDemo exerciseId={exerciseId} label={ex.name} clipOnly />
 
         <div className="tags">
           <span className="pill">{info.difficulty}</span>

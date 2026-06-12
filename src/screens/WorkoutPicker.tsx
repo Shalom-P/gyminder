@@ -1,6 +1,7 @@
 import { useStore } from '../state/store'
 import { getActiveSplit } from '../data/splits'
 import { listDayInfo, recommendedDayId, formatIn } from '../engine/schedule'
+import { XIcon } from '../components/icons'
 
 export default function WorkoutPicker({
   onBack,
@@ -26,9 +27,9 @@ export default function WorkoutPicker({
     <div className="frame push">
       <div className="top">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ✕
+          <XIcon />
         </button>
-        <span className="brand">Choose workout</span>
+        <span className="brand center">Choose workout</span>
       </div>
 
       <div className="body scroll">
@@ -48,10 +49,7 @@ export default function WorkoutPicker({
               )}
               <span className="title">{d.label}</span>
               <span className="muted">{d.detail}</span>
-              <span
-                className={`pill${d.ready ? ' ok' : ''}`}
-                style={{ marginTop: 8 }}
-              >
+              <span className={`pill${d.ready ? ' ok' : ''}`}>
                 <span className="dot" />
                 {d.ready ? 'Ready now' : `Best in ${formatIn(d.readyAt - now)}`}
               </span>

@@ -96,7 +96,8 @@ export default function Onboarding() {
   return (
     <div className="frame push" key={step}>
       <div className="top">
-        <span className="brand">Gyminder setup</span>
+        <span className="brand center">Gyminder setup</span>
+        <span />
         <div className="dots">
           {STEPS.map((_, i) => (
             <i
@@ -107,16 +108,12 @@ export default function Onboarding() {
         </div>
       </div>
       <div className="body">
-        <div className="reveal" style={{ marginTop: 8 }}>
+        <div className="screen-head reveal">
           <span className="eyebrow">
             Step {step + 1} of {STEPS.length}
           </span>
-          <h1 className="h1" style={{ marginTop: 6 }}>
-            {current.title}
-          </h1>
-          <p className="muted" style={{ marginTop: 8 }}>
-            {current.sub}
-          </p>
+          <h1 className="h1">{current.title}</h1>
+          <p className="muted">{current.sub}</p>
         </div>
         <div className="spacer" />
         <div className="list reveal">

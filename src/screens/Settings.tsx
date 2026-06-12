@@ -48,14 +48,12 @@ export default function Settings({
   return (
     <div className="frame tabbed">
       <div className="top">
-        <span className="brand">Settings</span>
+        <span className="brand center">Settings</span>
         <span />
       </div>
 
       <div className="body scroll">
-        <h1 className="h1" style={{ marginBottom: 4 }}>
-          Settings
-        </h1>
+        <h1 className="h1">Settings</h1>
 
         <div className="card">
           <span className="label">Mode</span>

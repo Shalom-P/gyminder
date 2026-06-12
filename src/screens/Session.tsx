@@ -5,7 +5,7 @@ import { getCoaching } from '../data/coaching'
 import { restSeconds, targetParts } from '../engine/progression'
 import { SetRoller, ValueRoller } from '../components/Rollers'
 import ExerciseDemo from '../components/ExerciseDemo'
-import { CheckIcon } from '../components/icons'
+import { CheckIcon, XIcon } from '../components/icons'
 
 function mmss(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -194,7 +194,7 @@ export default function Session({
     <div className="frame push">
       <div className="session-head">
         <button className="icon-btn" onClick={quit} aria-label="Quit workout">
-          ✕
+          <XIcon />
         </button>
         <div className="progress-track">
           <div className="progress-fill" style={{ width: `${(a.cursor / total) * 100}%` }} />
