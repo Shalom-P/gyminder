@@ -382,6 +382,7 @@ input {
 .nav-animating .btn.primary::after,
 .nav-animating .set-track .seg.cur,
 .nav-animating .demo-photo-b,
+.nav-animating .demo-stage::after,
 .nav-animating .exa-j,
 .nav-animating .exa-root {
   animation: none !important;
@@ -734,7 +735,7 @@ input {
   gap: 4px;
   cursor: pointer;
   box-shadow: inset 0 0 0 1px var(--line);
-  transition: transform 0.16s var(--ease), background 0.25s var(--ease),
+  transition: transform 0.2s var(--ease-pop), background 0.25s var(--ease),
     box-shadow 0.25s var(--ease);
 }
 .choice:active {
@@ -1225,6 +1226,49 @@ html.boot-hidden .ring-tip {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* Cascade: list content materialises top-to-bottom in one quick wave — rows
+   land ~28ms apart, capped so long lists never feel slow. Inherited app-wide
+   (Onboarding, ModeSelect, Library, Picker, Builder). */
+.list > * {
+  animation: listRise 0.38s var(--ease) both;
+  animation-delay: 0.14s;
+}
+.list > *:nth-child(1) {
+  animation-delay: 0s;
+}
+.list > *:nth-child(2) {
+  animation-delay: 0.028s;
+}
+.list > *:nth-child(3) {
+  animation-delay: 0.056s;
+}
+.list > *:nth-child(4) {
+  animation-delay: 0.084s;
+}
+.list > *:nth-child(5) {
+  animation-delay: 0.112s;
+}
+@keyframes listRise {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+}
+/* the frozen nav snapshot must not replay the wave while sliding out, and a
+   hidden first paint must not strand rows invisible (animations are frozen
+   on hidden pages — same hazard as the recovery ring's draw-on). */
+.nav-exit .list > * {
+  animation: none !important;
+}
+html.boot-hidden .list > * {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .list > * {
+    animation: sessFade 0.18s ease both;
+    animation-delay: 0s !important;
+  }
 }
 .scroll {
   overflow-y: auto;
@@ -1773,6 +1817,10 @@ html.boot-hidden .ring-tip {
 .rest-ring .rt-track {
   stroke: var(--fill-2);
 }
+/* chronograph tick track — 60 hairline marks inside the countdown band */
+.rest-ring .rt-ticks {
+  stroke: var(--line-strong);
+}
 .rest-ring .rt-arc {
   stroke: var(--accent);
   stroke-linecap: round;
@@ -1807,6 +1855,40 @@ html.boot-hidden .ring-tip {
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.3s var(--ease);
+}
+/* odometer digits: each is a masked 0-9 strip that rolls to the value, so the
+   countdown ticks over like an instrument. Tabular numerals keep every strip
+   the same width; em-based heights track the font size exactly. */
+.rest-time > span {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+.rt-digit {
+  overflow: hidden;
+}
+.rt-strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.36s var(--ease);
+  will-change: transform;
+}
+.rt-strip span {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+/* final seconds: the time arms itself — the signal that work is imminent */
+.rest-panel.closing .rest-time {
+  color: var(--accent-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rt-strip {
+    transition: none;
+  }
 }
 .rest-next {
   font-size: var(--fs-sub);
@@ -1871,6 +1953,60 @@ html.boot-hidden .ring-tip {
   justify-content: center;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--line);
+}
+/* HUD viewfinder: hairline corner ticks frame the generated rig as a live
+   viewport. Scoped off real photos — HUD chrome belongs on telemetry, and the
+   theme hairline wouldn't read on the photos' fixed light backdrop anyway. */
+.demo-stage:not(.demo-stage-photo)::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  z-index: 1;
+  pointer-events: none;
+  --tick: var(--line-strong);
+  background:
+    linear-gradient(var(--tick), var(--tick)) left 0 top 0 / 13px 1.5px,
+    linear-gradient(var(--tick), var(--tick)) left 0 top 0 / 1.5px 13px,
+    linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 13px 1.5px,
+    linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 1.5px 13px,
+    linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 13px 1.5px,
+    linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 1.5px 13px,
+    linear-gradient(var(--tick), var(--tick)) right 0 bottom 0 / 13px 1.5px,
+    linear-gradient(var(--tick), var(--tick)) right 0 bottom 0 / 1.5px 13px;
+  background-repeat: no-repeat;
+}
+/* a slow scan sweep marks the generated rig as live telemetry (not on photos) */
+.demo-stage:not(.demo-stage-photo)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--accent-line), var(--accent-line)) 0 0 / 100% 1.5px
+    no-repeat;
+  animation: demoScan 5.2s linear infinite;
+}
+@keyframes demoScan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.45;
+  }
+  88% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateY(calc(100% - 2px));
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-stage:not(.demo-stage-photo)::after {
+    display: none;
+  }
 }
 .demo-stage image-slot,
 .demo-stage .demo-clip {
@@ -2017,6 +2153,39 @@ html.boot-hidden .ring-tip {
   stroke-width: 5;
   stroke-linecap: round;
 }
+/* calibration dot-grid the rig is captured against — barely-there ink */
+.exa .gridfill {
+  opacity: 0.3;
+}
+.exa .grid-dot {
+  fill: var(--faint);
+}
+/* mocap marker nodes on the live figure's pivots — the one lime signal,
+   ringed in canvas ink so they read on top of the limbs */
+.exa .node {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+/* the echo: same rig a beat out of phase, all-ink and feather-light, tracing
+   where the rep travels (an afterimage, not a second athlete) */
+.exa-ghost {
+  opacity: 0.15;
+}
+.exa-ghost line {
+  stroke-width: 6;
+}
+.exa-ghost .head {
+  fill: var(--text);
+}
+.exa-ghost .imp {
+  stroke: var(--text);
+  stroke-width: 5;
+}
+.exa-ghost .exa-j,
+.exa-ghost .exa-root {
+  animation-delay: calc(var(--dur, 2.6s) * -0.12);
+}
 .exa-j,
 .exa-root {
   animation: exaMove var(--dur, 2.6s) ease-in-out infinite alternate;
@@ -2036,6 +2205,9 @@ html.boot-hidden .ring-tip {
   .exa-root {
     animation: none;
     transform: var(--t);
+  }
+  .exa-ghost {
+    display: none;
   }
 }
 
@@ -2084,7 +2256,7 @@ html.boot-hidden .ring-tip {
   gap: 12px;
   cursor: pointer;
   box-shadow: inset 0 0 0 1px var(--line);
-  transition: transform 0.16s var(--ease), background 0.25s var(--ease);
+  transition: transform 0.2s var(--ease-pop), background 0.25s var(--ease);
 }
 .row-link:active {
   transform: scale(0.987);
@@ -2163,9 +2335,14 @@ html.boot-hidden .ring-tip {
   font-size: var(--fs-micro);
   font-weight: var(--w-semi);
   letter-spacing: 0.01em;
+  /* Geist is variable — the active label's weight morphs rather than snaps */
+  transition: font-weight 0.32s var(--ease);
 }
 .tab.active {
   color: var(--accent-text);
+}
+.tab.active .tl {
+  font-weight: 740;
 }
 .tab.active .ti {
   transform: translateY(-2px);

@@ -268,6 +268,51 @@ export default function ExerciseAnimation({
       ? `translate(0px, ${bodyDy}px) rotate(${bodyRot}deg)`
       : undefined
 
+  /* The rig is rendered twice: a faint ink "echo" running the same loop a beat
+     out of phase (a motion-capture afterimage that shows where the rep travels),
+     then the live figure on top, carrying lime marker nodes on its pivots.
+     `ghost` drops the nodes so lime stays on the live figure only. */
+  const figure = (ghost: boolean) => (
+    <g className="exa-root" style={rootStyle(a.root, b.root, dur)}>
+      {/* torso + arm chain, pivots at the hip */}
+      <g className="exa-j" style={jointStyle(100, 150, a.torso, b.torso, dur)}>
+        <line x1={100} y1={150} x2={100} y2={88} />
+        <circle className="head" cx={100} cy={70} r={14} />
+        {load === 'backbar' && (
+          <line className="imp" x1={72} y1={86} x2={128} y2={86} />
+        )}
+        {!ghost && <circle className="node" cx={100} cy={88} r={3.4} />}
+        <g
+          className="exa-j"
+          style={jointStyle(100, 88, a.arm, b.arm, dur)}
+        >
+          <line x1={100} y1={88} x2={100} y2={120} />
+          {!ghost && <circle className="node" cx={100} cy={120} r={3.4} />}
+          <g
+            className="exa-j"
+            style={jointStyle(100, 120, a.elbow, b.elbow, dur)}
+          >
+            <line x1={100} y1={120} x2={100} y2={150} />
+            <Load kind={load} />
+          </g>
+        </g>
+      </g>
+      {/* leg chain, pivots at the hip */}
+      <g className="exa-j" style={jointStyle(100, 150, a.hip, b.hip, dur)}>
+        <line x1={100} y1={150} x2={100} y2={196} />
+        {!ghost && <circle className="node" cx={100} cy={196} r={3.4} />}
+        <g
+          className="exa-j"
+          style={jointStyle(100, 196, a.knee, b.knee, dur)}
+        >
+          <line x1={100} y1={196} x2={100} y2={238} />
+          <line x1={100} y1={238} x2={120} y2={238} />
+        </g>
+      </g>
+      {!ghost && <circle className="node" cx={100} cy={150} r={3.4} />}
+    </g>
+  )
+
   return (
     <svg
       className="exa"
@@ -275,6 +320,25 @@ export default function ExerciseAnimation({
       role="img"
       aria-label={label ? `Animated demo: ${label}` : 'Animated exercise demo'}
     >
+      <defs>
+        <pattern
+          id="exaGrid"
+          width="16"
+          height="16"
+          patternUnits="userSpaceOnUse"
+        >
+          <circle className="grid-dot" cx="1.2" cy="1.2" r="1.2" />
+        </pattern>
+      </defs>
+      {/* calibration grid: the faint dot-field the rig is captured against */}
+      <rect
+        className="gridfill"
+        x="12"
+        y="8"
+        width="196"
+        height="244"
+        fill="url(#exaGrid)"
+      />
       <Scenery scene={scene} />
       <g
         style={
@@ -283,40 +347,10 @@ export default function ExerciseAnimation({
             : undefined
         }
       >
-      <g className="exa-root" style={rootStyle(a.root, b.root, dur)}>
-        {/* torso + arm chain, pivots at the hip */}
-        <g className="exa-j" style={jointStyle(100, 150, a.torso, b.torso, dur)}>
-          <line x1={100} y1={150} x2={100} y2={88} />
-          <circle className="head" cx={100} cy={70} r={14} />
-          {load === 'backbar' && (
-            <line className="imp" x1={72} y1={86} x2={128} y2={86} />
-          )}
-          <g
-            className="exa-j"
-            style={jointStyle(100, 88, a.arm, b.arm, dur)}
-          >
-            <line x1={100} y1={88} x2={100} y2={120} />
-            <g
-              className="exa-j"
-              style={jointStyle(100, 120, a.elbow, b.elbow, dur)}
-            >
-              <line x1={100} y1={120} x2={100} y2={150} />
-              <Load kind={load} />
-            </g>
-          </g>
+        <g className="exa-ghost" aria-hidden="true">
+          {figure(true)}
         </g>
-        {/* leg chain, pivots at the hip */}
-        <g className="exa-j" style={jointStyle(100, 150, a.hip, b.hip, dur)}>
-          <line x1={100} y1={150} x2={100} y2={196} />
-          <g
-            className="exa-j"
-            style={jointStyle(100, 196, a.knee, b.knee, dur)}
-          >
-            <line x1={100} y1={196} x2={100} y2={238} />
-            <line x1={100} y1={238} x2={120} y2={238} />
-          </g>
-        </g>
-      </g>
+        {figure(false)}
       </g>
     </svg>
   )
