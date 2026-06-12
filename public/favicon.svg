@@ -1,10 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="104" fill="#0b0b0c" />
-  <g fill="#7dd3fc">
-    <rect x="84" y="190" width="48" height="132" rx="16" />
-    <rect x="132" y="222" width="34" height="68" rx="10" />
-    <rect x="166" y="242" width="180" height="28" rx="14" />
-    <rect x="346" y="222" width="34" height="68" rx="10" />
-    <rect x="380" y="190" width="48" height="132" rx="16" />
+  <!-- GYMINDER app icon — the charged recovery ring (Ink & Lime).
+       The app's hero element as its mark: an electric-lime arc at full charge,
+       its head pip at 12 o'clock, over a faint chronograph bezel on ink.
+       Full-bleed square on purpose: iOS/Android mask their own corners, and a
+       baked rounded rect would leave a corner seam on the flattened exports
+       (scripts/gen-icons.mjs). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16171a"/>
+      <stop offset="0.62" stop-color="#0b0b0c"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0.18" y1="0" x2="0.82" y2="1">
+      <stop offset="0" stop-color="#d8ff66"/>
+      <stop offset="0.52" stop-color="#c8ff3d"/>
+      <stop offset="1" stop-color="#b6f024"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- bezel ticks: 12 instrument marks, hairline-quiet -->
+  <g stroke="#f7f7f3" stroke-opacity="0.15" stroke-width="6" stroke-linecap="round">
+    <line x1="364" y1="256" x2="380" y2="256"/>
+    <line x1="349.5" y1="310" x2="363.4" y2="318"/>
+    <line x1="310" y1="349.5" x2="318" y2="363.4"/>
+    <line x1="256" y1="364" x2="256" y2="380"/>
+    <line x1="202" y1="349.5" x2="194" y2="363.4"/>
+    <line x1="162.5" y1="310" x2="148.6" y2="318"/>
+    <line x1="148" y1="256" x2="132" y2="256"/>
+    <line x1="162.5" y1="202" x2="148.6" y2="194"/>
+    <line x1="202" y1="162.5" x2="194" y2="148.6"/>
+    <line x1="256" y1="148" x2="256" y2="132"/>
+    <line x1="310" y1="162.5" x2="318" y2="148.6"/>
+    <line x1="349.5" y1="202" x2="363.4" y2="194"/>
   </g>
+  <!-- the charged arc: 312° sweep, gap centred at 12 o'clock -->
+  <path d="M 322.71 106.18 A 164 164 0 1 1 189.29 106.18"
+        fill="none" stroke="url(#ring)" stroke-width="46" stroke-linecap="round"/>
+  <!-- head pip riding the gap -->
+  <circle cx="256" cy="92" r="26" fill="#c8ff3d"/>
 </svg>
