@@ -13,6 +13,21 @@ function mmss(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+// One odometer digit: a 0-9 strip that rolls vertically to the current value,
+// so the rest countdown ticks over like an instrument instead of re-rendering.
+const DIGITS = Array.from({ length: 10 }, (_, i) => i)
+function DigitRoll({ d }: { d: number }) {
+  return (
+    <span className="rt-digit">
+      <span className="rt-strip" style={{ transform: `translateY(${-d}em)` }}>
+        {DIGITS.map((n) => (
+          <span key={n}>{n}</span>
+        ))}
+      </span>
+    </span>
+  )
+}
+
 // How long the completion checkmark plays before the next state takes over.
 // Kept brief (Apple HIG: quick + purposeful for frequent interactions).
 const POP_MS = 360
@@ -257,7 +272,11 @@ export default function Session({
           </div>
 
           <div className="swap-layer rest-layer" aria-hidden={!resting}>
-            <div className="rest-panel">
+            <div
+              className={`rest-panel${
+                resting && restLeft <= 5 ? ' closing' : ''
+              }`}
+            >
               <div className="rest-ring">
                 <svg viewBox="0 0 100 100">
                   <circle
@@ -267,6 +286,16 @@ export default function Session({
                     r={REST_R}
                     fill="none"
                     strokeWidth="7"
+                  />
+                  {/* chronograph tick track — 60 hairline marks (C(r=36)/60 ≈ 3.77) */}
+                  <circle
+                    className="rt-ticks"
+                    cx="50"
+                    cy="50"
+                    r={36}
+                    fill="none"
+                    strokeWidth="2.5"
+                    strokeDasharray="1.1 2.67"
                   />
                   <circle
                     className="rt-arc"
@@ -281,7 +310,16 @@ export default function Session({
                 </svg>
                 <div className="rest-center">
                   <span className="rest-eyebrow">Rest</span>
-                  <div className="rest-time">{mmss(restLeft)}</div>
+                  <div
+                    className="rest-time"
+                    role="timer"
+                    aria-label={mmss(restLeft)}
+                  >
+                    <DigitRoll d={Math.floor(restLeft / 60) % 10} />
+                    <span className="rt-colon">:</span>
+                    <DigitRoll d={Math.floor((restLeft % 60) / 10)} />
+                    <DigitRoll d={restLeft % 10} />
+                  </div>
                 </div>
               </div>
               <span className="rest-next">
