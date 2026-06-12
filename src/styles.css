@@ -71,6 +71,14 @@
   --fs-h2: 25px;
   --fs-display: 40px; /* screen titles */
 
+  /* meter scale — live numerals (always tabular). One quantised ladder instead
+     of per-widget ad-hoc sizes, so instruments agree with each other. */
+  --fs-meter-sm: 22px; /* steppers */
+  --fs-meter-md: 24px; /* stat-row values (home/complete meta) */
+  --fs-meter-lg: 30px; /* ring headline */
+  --fs-meter-xl: 40px; /* roller target values (= display size) */
+  --fs-meter-2xl: 52px; /* rest countdown */
+
   --lh-tight: 1.02;
   --lh-snug: 1.26;
   --lh-body: 1.55;
@@ -431,6 +439,7 @@ input {
 
 /* ============================ HEADER ============================ */
 .top {
+  position: relative; /* anchors the centred page label */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -446,6 +455,17 @@ input {
   letter-spacing: var(--ls-over);
   text-transform: uppercase;
   color: var(--muted);
+}
+/* Page label on sub-screens: optically centred in the top bar (iOS nav-title
+   rule) regardless of which side holds a control. Home keeps its wordmark
+   anchored left — that one is a brand, not a title. */
+.brand.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* the extra half letter-space cancels the tracking's phantom trailing gap */
+  transform: translate(calc(-50% + 0.5 * var(--ls-over)), -50%);
+  white-space: nowrap;
 }
 .brand .mark {
   width: 18px;
@@ -477,6 +497,11 @@ input {
   transform: scale(0.9);
   background: var(--fill-3);
 }
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
 
 .body {
   flex: 1;
@@ -491,6 +516,15 @@ input {
 }
 
 /* ============================ TYPE ============================ */
+/* The one screen-title block: eyebrow → display title → support line on a
+   fixed 8px rhythm. Every screen header uses this — never hand-space titles
+   with ad-hoc margins. */
+.screen-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .eyebrow {
   font-size: var(--fs-sub);
   font-weight: var(--w-semi);
@@ -519,12 +553,12 @@ input {
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   margin: 0;
+  text-wrap: pretty; /* no single-word orphan lines (progressive enhancement) */
 }
 
 /* uppercase tracked overline — the one small-label treatment used everywhere */
 .overline,
 .card .label,
-.field label,
 .group-label,
 .section h3,
 .tstat-lbl,
@@ -537,8 +571,17 @@ input {
   color: var(--faint);
 }
 
+/* Centred tracked labels carry a phantom trailing letter-space; cancel it so
+   they sit optically centred (instrument alignment, not box alignment). */
+.tstat-lbl,
+.ring-label,
+.ring-status,
+.rest-eyebrow,
+.hm-item span {
+  margin-inline-end: calc(-1 * var(--ls-over));
+}
+
 /* numerals: tabular so live data never shifts width as the value changes */
-.big-num,
 .ring-big,
 .tstat-val,
 .tstat-bw,
@@ -546,17 +589,10 @@ input {
 .roller-item,
 .rest-time,
 .hm-item b,
-.stat .n,
-.hist-score,
 .chip {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
-}
-.big-num {
-  font-size: 46px;
-  font-weight: var(--w-bold);
-  letter-spacing: -0.04em;
 }
 
 /* ============================ CARD ============================ */
@@ -749,6 +785,14 @@ input {
   font-size: var(--fs-headline);
   font-weight: var(--w-semi);
   letter-spacing: -0.01em;
+}
+/* support line steps down to sub size — same title/sub contrast as .row-link */
+.choice .muted {
+  font-size: var(--fs-sub);
+  line-height: var(--lh-snug);
+}
+.choice .pill {
+  margin-top: 8px;
 }
 .choice.reco {
   background: var(--accent-wash);
@@ -995,7 +1039,7 @@ html.boot-hidden .ring-tip {
   color: var(--accent-text);
 }
 .ring-big {
-  font-size: 31px;
+  font-size: var(--fs-meter-lg);
   font-weight: var(--w-bold);
   letter-spacing: -0.03em;
   line-height: 1;
@@ -1014,12 +1058,7 @@ html.boot-hidden .ring-tip {
   color: var(--faint);
 }
 
-/* home header + session-preview stat row */
-.home-head {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
+/* session-preview stat row (home + complete) */
 .home-meta {
   display: flex;
   align-items: center;
@@ -1036,7 +1075,7 @@ html.boot-hidden .ring-tip {
   gap: 4px;
 }
 .hm-item b {
-  font-size: 23px;
+  font-size: var(--fs-meter-md);
   font-weight: var(--w-bold);
   letter-spacing: -0.03em;
 }
@@ -1066,10 +1105,11 @@ html.boot-hidden .ring-tip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  text-align: center;
 }
-.complete-celebrate .h1 {
-  margin-top: 4px;
+.complete-celebrate .screen-head {
+  align-items: center;
 }
 
 /* ============================ STEP DOTS ============================ */
@@ -1193,35 +1233,6 @@ html.boot-hidden .ring-tip {
   }
 }
 
-/* ============================ DETAIL FIELDS ============================ */
-.detail {
-  display: flex;
-  gap: 12px;
-}
-.field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.field input {
-  background: var(--fill);
-  border: none;
-  border-radius: var(--r-sm);
-  height: 54px;
-  padding: 0 15px;
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-  width: 100%;
-  box-shadow: inset 0 0 0 1px var(--line);
-  transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease);
-}
-.field input:focus {
-  outline: none;
-  background: var(--fill-2);
-  box-shadow: inset 0 0 0 1.5px var(--accent);
-}
-
 .list {
   display: flex;
   flex-direction: column;
@@ -1315,7 +1326,7 @@ html.boot-hidden .list > * {
 .sess-top {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px; /* same eyebrow→title rhythm as .screen-head */
   animation: sessTopIn 0.4s var(--ease) both;
 }
 
@@ -1435,7 +1446,7 @@ html.boot-hidden .list > * {
 .set-track {
   display: flex;
   gap: 5px;
-  margin-top: 2px;
+  margin-top: 6px; /* keeps title→track at 14px now that .sess-top gap is 8px */
 }
 .set-track .seg {
   flex: 1;
@@ -1488,7 +1499,7 @@ html.boot-hidden .list > * {
   padding: 0 6px;
 }
 .tstat-val {
-  font-size: 40px;
+  font-size: var(--fs-meter-xl);
   font-weight: var(--w-bold);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -1505,7 +1516,7 @@ html.boot-hidden .list > * {
   letter-spacing: 0;
 }
 .tstat-bw {
-  font-size: 25px;
+  font-size: var(--fs-h2);
   color: var(--accent-text);
   letter-spacing: -0.01em;
 }
@@ -1594,7 +1605,7 @@ html.boot-hidden .list > * {
   cursor: pointer;
   background: var(--fill-2);
   color: var(--text);
-  font-size: 22px;
+  font-size: var(--fs-meter-sm);
   font-weight: var(--w-med);
   display: grid;
   place-items: center;
@@ -1615,7 +1626,7 @@ html.boot-hidden .list > * {
 .step-val {
   min-width: 48px;
   text-align: center;
-  font-size: 22px;
+  font-size: var(--fs-meter-sm);
   font-weight: var(--w-bold);
   letter-spacing: -0.02em;
 }
@@ -1668,7 +1679,7 @@ html.boot-hidden .list > * {
   flex: none;
   display: grid;
   place-items: center;
-  font-size: 33px;
+  font-size: 33px; /* geometry-bound: must fit ITEM_H (36px) — not on the meter scale */
   font-weight: var(--w-bold);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -1850,7 +1861,7 @@ html.boot-hidden .list > * {
   color: var(--accent-text);
 }
 .rest-time {
-  font-size: 52px;
+  font-size: var(--fs-meter-2xl);
   font-weight: var(--w-bold);
   letter-spacing: -0.03em;
   line-height: 1;
@@ -1858,6 +1869,11 @@ html.boot-hidden .list > * {
   display: inline-flex;
   align-items: center;
   transition: color 0.3s var(--ease);
+}
+/* a hair of air either side of the colon — the bare glyph reads cramped
+   between tabular digits at meter size */
+.rt-colon {
+  margin: 0 0.035em;
 }
 /* odometer digits: each is a masked 0-9 strip that rolls to the value, so the
    countdown ticks over like an instrument. Tabular numerals keep every strip
@@ -2281,7 +2297,14 @@ html.boot-hidden .list > * {
 }
 .row-link .chev {
   color: var(--faint);
-  font-size: 20px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.row-link .chev svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 .group-label {
   margin: 18px 0 10px;
@@ -2376,77 +2399,3 @@ html.boot-hidden .list > * {
   transform: scale(0.92);
 }
 
-/* ============================ HISTORY / STATS ============================ */
-.hist-row {
-  background: var(--fill);
-  border: none;
-  border-radius: var(--r-md);
-  padding: 15px 17px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-.hist-row .d {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.hist-row .d .t {
-  font-size: var(--fs-headline);
-  font-weight: var(--w-semi);
-}
-.hist-row .d .s {
-  font-size: var(--fs-sub);
-  color: var(--faint);
-}
-.hist-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.hist-score {
-  font-weight: var(--w-bold);
-  font-size: var(--fs-body);
-  color: var(--accent-text);
-  background: var(--accent-wash);
-  border: none;
-  border-radius: var(--r-pill);
-  padding: 6px 11px;
-}
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.stat {
-  background: var(--fill);
-  border: none;
-  border-radius: var(--r-lg);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-.stat .n {
-  font-size: 30px;
-  font-weight: var(--w-bold);
-  letter-spacing: -0.025em;
-}
-.stat .l {
-  font-size: var(--fs-overline);
-  font-weight: var(--w-semi);
-  letter-spacing: var(--ls-over);
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-.empty {
-  text-align: center;
-  color: var(--faint);
-  padding: 40px 20px;
-  font-size: var(--fs-body);
-  line-height: var(--lh-body);
-}

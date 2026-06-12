@@ -45,7 +45,7 @@ export default function Complete({ onHome }: { onHome: () => void }) {
   return (
     <div className="frame push">
       <div className="top">
-        <span className="brand">Workout complete</span>
+        <span className="brand center">Workout complete</span>
         <span />
       </div>
 
@@ -62,12 +62,10 @@ export default function Complete({ onHome }: { onHome: () => void }) {
                 <CheckIcon />
               </div>
             </div>
-            <h1 className="h1" style={{ textAlign: 'center' }}>
-              {last?.dayLabel} done
-            </h1>
-            <p className="muted" style={{ textAlign: 'center' }}>
-              {signoff}
-            </p>
+            <div className="screen-head">
+              <h1 className="h1">{last?.dayLabel} done</h1>
+              <p className="muted">{signoff}</p>
+            </div>
           </div>
 
           {/* Competence + consistency made tangible: what you just did, plus the

@@ -135,7 +135,7 @@ export default function Home({
       </div>
 
       <div className="body">
-        <div className="home-head">
+        <div className="screen-head">
           <span className="eyebrow">{greeting()}</span>
           <h1 className="h1">{headline}</h1>
           <p className="muted">

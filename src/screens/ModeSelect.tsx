@@ -1,5 +1,6 @@
 import { SPLITS, recommendSplitId } from '../data/splits'
 import { useStore } from '../state/store'
+import { XIcon } from '../components/icons'
 
 export default function ModeSelect({
   onBack,
@@ -21,14 +22,14 @@ export default function ModeSelect({
   return (
     <div className="frame push">
       <div className="top">
-        <span className="brand">Training mode</span>
         {onBack ? (
           <button className="icon-btn" onClick={onBack} aria-label="Back">
-            ✕
+            <XIcon />
           </button>
         ) : (
           <span />
         )}
+        <span className="brand center">Training mode</span>
       </div>
       <div className="body scroll">
         <p className="muted">

@@ -1,5 +1,6 @@
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
+import { ChevronIcon } from '../components/icons'
 import type { Muscle } from '../types'
 
 const ORDER: Muscle[] = [
@@ -29,18 +30,18 @@ export default function Library({
   return (
     <div className="frame tabbed">
       <div className="top">
-        <span className="brand">Exercise library</span>
+        <span className="brand center">Exercise library</span>
         <span />
       </div>
 
       <div className="body scroll">
-        <h1 className="h1" style={{ marginBottom: 2 }}>
-          Exercises
-        </h1>
-        <p className="muted">
-          {all.length} exercises with animated demos, form cues and common
-          mistakes. Tap any to learn it.
-        </p>
+        <div className="screen-head">
+          <h1 className="h1">Exercises</h1>
+          <p className="muted">
+            {all.length} exercises with animated demos, form cues and common
+            mistakes. Tap any to learn it.
+          </p>
+        </div>
         {ORDER.map((muscle) => {
           const items = all.filter((e) => e.primary === muscle)
           if (!items.length) return null
@@ -62,7 +63,9 @@ export default function Library({
                           {info?.difficulty} · {e.type}
                         </span>
                       </span>
-                      <span className="chev">›</span>
+                      <span className="chev">
+                        <ChevronIcon />
+                      </span>
                     </button>
                   )
                 })}

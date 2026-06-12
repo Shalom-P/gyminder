@@ -25,6 +25,36 @@ export function GearIcon() {
   )
 }
 
+/* Dismiss / back ✕ — an SVG so it centres optically in .icon-btn (the text
+   glyph rode on fallback-font metrics and sat slightly off-grid). */
+export function XIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/* Row-link trailing chevron — replaces the '›' text glyph for the same reason. */
+export function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M9.5 5.5l6.5 6.5-6.5 6.5"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function CheckIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">

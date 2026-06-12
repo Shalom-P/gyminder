@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
 import { FOCUSES, buildCustomSplit } from '../data/customSplit'
+import { XIcon } from '../components/icons'
 
 const DAY_OPTIONS = [3, 4, 5, 6]
 
@@ -38,7 +39,7 @@ export default function ScheduleBuilder({
     <div className="frame push">
       <div className="top">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ✕
+          <XIcon />
         </button>
         <div className="dots">
           {Array.from({ length: totalSteps }).map((_, i) => (
@@ -54,12 +55,10 @@ export default function ScheduleBuilder({
         <div className="builder-step reveal" key={stepIdx}>
         {days == null ? (
           <>
-            <div style={{ marginTop: 8 }}>
+            <div className="screen-head">
               <span className="eyebrow">Build your schedule</span>
-              <h1 className="h1" style={{ marginTop: 6 }}>
-                How many training days?
-              </h1>
-              <p className="muted" style={{ marginTop: 8 }}>
+              <h1 className="h1">How many training days?</h1>
+              <p className="muted">
                 You'll choose what each day focuses on next.
               </p>
             </div>
@@ -81,14 +80,12 @@ export default function ScheduleBuilder({
           </>
         ) : (
           <>
-            <div style={{ marginTop: 8 }}>
+            <div className="screen-head">
               <span className="eyebrow">
                 Day {picks.length + 1} of {days}
               </span>
-              <h1 className="h1" style={{ marginTop: 6 }}>
-                What's this day's focus?
-              </h1>
-              <p className="muted" style={{ marginTop: 8 }}>
+              <h1 className="h1">What's this day's focus?</h1>
+              <p className="muted">
                 Exercises auto-fill from your equipment; timing adapts to
                 recovery.
               </p>
