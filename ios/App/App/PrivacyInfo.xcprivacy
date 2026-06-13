@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Gyminder privacy manifest.
+
+	  This app collects NO data. There is no backend, no account, no network
+	  request, and no analytics/tracking SDK. All state lives on-device only.
+
+	  - NSPrivacyTracking = false: the app does not track users (ATT).
+	  - NSPrivacyTrackingDomains = empty: no domains contacted for tracking.
+	  - NSPrivacyCollectedDataTypes = empty: no data is collected.
+	  - NSPrivacyAccessedAPITypes: the ONLY required-reason API reached is
+	    UserDefaults, used by Capacitor core to persist app configuration.
+	    Reason CA92.1 = "Access info from the app itself / app group."
+	    (Our own Swift — LiveRestPlugin, the RestWidget — uses none.)
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

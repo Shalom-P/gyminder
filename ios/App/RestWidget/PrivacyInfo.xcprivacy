@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  RestWidget (rest-timer Live Activity / Dynamic Island) privacy manifest.
+
+	  This extension renders the active rest timer using ActivityKit + SwiftUI.
+	  It collects no data, contacts no network, tracks nothing, and reaches no
+	  required-reason API. A manifest is not strictly required for a binary with
+	  no required-reason API usage, but is included for a complete Privacy Report.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>
