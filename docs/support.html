@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gyminder — Support</title>
+  <meta name="description" content="Support for Gyminder, an offline gym coach. Contact and answers to common questions." />
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --fg: #ededed;
+      --muted: #9a9a9a;
+      --rule: #2a2a2a;
+      --accent: #c8ff3d;
+      --maxw: 44rem;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #faf9f5; --fg: #1a1a1a; --muted: #5f5f5f; --rule: #e2e0d8; --accent: #5c6e0f; }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      font-size: 17px;
+    }
+    main { max-width: var(--maxw); margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+    .overline {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    h1 { font-size: 2.1rem; line-height: 1.1; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+    h2 { font-size: 1.2rem; margin: 2.5rem 0 0.6rem; letter-spacing: -0.01em; }
+    .lead {
+      font-size: 1.15rem;
+      border-left: 2px solid var(--accent);
+      padding-left: 1rem;
+      margin: 1.5rem 0 0;
+    }
+    p, li { color: var(--fg); }
+    a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    dl { margin: 1.5rem 0 0; }
+    dt { font-weight: 600; margin: 1.4rem 0 0.2rem; }
+    dd { margin: 0 0 0 0; color: var(--muted); }
+    dd { color: var(--fg); }
+    hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+    footer { color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="overline">Gyminder</p>
+    <h1>Support</h1>
+
+    <p class="lead">
+      Gyminder is a single-user gym coach that runs entirely on your device.
+      Need help? Email <a href="mailto:rahulnalluru007@gmail.com">rahulnalluru007@gmail.com</a>
+      and you'll get a reply.
+    </p>
+
+    <h2>Common questions</h2>
+    <dl>
+      <dt>Does Gyminder need an account or internet?</dt>
+      <dd>No. There's no sign-up and no network connection. Everything works offline and stays on your device.</dd>
+
+      <dt>Where is my workout data stored?</dt>
+      <dd>Only on your device. It is never uploaded anywhere. See the
+        <a href="privacy-policy.html">Privacy Policy</a> for details.</dd>
+
+      <dt>How do I reset my profile or clear my data?</dt>
+      <dd>Use &ldquo;redo setup&rdquo; inside the app to reset your profile. Deleting the
+        app removes all of its data permanently.</dd>
+
+      <dt>How do I report a problem or request a feature?</dt>
+      <dd>Email <a href="mailto:rahulnalluru007@gmail.com">rahulnalluru007@gmail.com</a>
+        with your device model and iOS version, and a short description of what happened.</dd>
+    </dl>
+
+    <hr />
+    <footer>
+      <p>Gyminder &middot; Offline gym coach &middot; &copy; 2026</p>
+    </footer>
+  </main>
+</body>
+</html>
