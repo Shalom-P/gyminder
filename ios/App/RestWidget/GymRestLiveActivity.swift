@@ -2,10 +2,13 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-// Aura palette — kept in sync with src/styles.css.
+// Live-workout palette — kept in sync with the "Ink & Lime" system in
+// src/styles.css. Lime (--accent #c8ff3d) is the app's signal for "live /
+// actionable", so the go/lift phase wears it; rest and the get-ready warning
+// keep distinct state colours so the countdown still reads at a glance.
 private let restViolet = Color(red: 0.655, green: 0.545, blue: 0.980) // #a78bfa  rest
 private let warnAmber  = Color(red: 1.000, green: 0.690, blue: 0.130) // #ffb020  get ready
-private let goGreen    = Color(red: 0.200, green: 0.780, blue: 0.349) // #34c759  go / lift
+private let goLime     = Color(red: 0.784, green: 1.000, blue: 0.239) // #c8ff3d  go / lift
 
 private enum RestPhase {
     case resting, almostUp, go
@@ -14,7 +17,7 @@ private enum RestPhase {
         switch self {
         case .resting:  return restViolet
         case .almostUp: return warnAmber
-        case .go:       return goGreen
+        case .go:       return goLime
         }
     }
     var icon: String {
@@ -82,6 +85,18 @@ private func bigTimer(_ context: ActivityViewContext<GymRestAttributes>, _ p: Re
     }
 }
 
+// Shown in the go/lift phase in place of the (now finished) rest bar: a quiet
+// cue that the Live Activity is tappable. Tapping it foregrounds the app on the
+// Session screen, where the lifter logs the set they just did — no in-island
+// button (and no App Intent target) needed.
+@ViewBuilder
+private func tapToLogCue(_ tint: Color) -> some View {
+    Label("Tap to log set", systemImage: "hand.tap.fill")
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(tint)
+        .frame(maxWidth: .infinity, alignment: .center)
+}
+
 struct GymRestLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GymRestAttributes.self) { context in
@@ -115,7 +130,11 @@ struct GymRestLiveActivity: Widget {
                             Spacer(minLength: 8)
                             bigTimer(context, p, size: 26)
                         }
-                        drainBar(context, tint: p.color)
+                        if isCounting(context) {
+                            drainBar(context, tint: p.color)
+                        } else {
+                            tapToLogCue(p.color)
+                        }
                     }
                 }
             } compactLeading: {
@@ -128,8 +147,11 @@ struct GymRestLiveActivity: Widget {
                         .foregroundStyle(p.color)
                         .frame(maxWidth: 44)
                 } else {
-                    Text(p.word)
+                    // Lifting / go: the colour + icon already say "go", so the
+                    // trailing slot earns its keep showing which set you're on.
+                    Text("\(context.state.setIndex)/\(context.state.setTotal)")
                         .font(.caption2.weight(.bold))
+                        .monospacedDigit()
                         .foregroundStyle(p.color)
                 }
             } minimal: {
@@ -169,7 +191,11 @@ struct RestLockScreenView: View {
                 bigTimer(context, p, size: 30)
                     .frame(minWidth: 86, alignment: .trailing)
             }
-            drainBar(context, tint: p.color)
+            if isCounting(context) {
+                drainBar(context, tint: p.color)
+            } else {
+                tapToLogCue(p.color)
+            }
         }
         .padding(16)
     }
