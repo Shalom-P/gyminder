@@ -228,6 +228,14 @@ input {
 }
 .nav-animating {
   will-change: transform, opacity;
+  /* Opaque canvas backdrop WHILE sliding so the two stacked screens occlude
+     each other. Without it both layers are transparent and the outgoing
+     snapshot + incoming screen show through to the body at once — the screens
+     visibly overlap mid-transition. Scoped to .nav-animating (always on the
+     exit layer, only on the live layer during the slide) so a resting screen
+     keeps the body's fixed gradient instead of flattening it. Matches body. */
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 32%);
 }
 
 /* stacking order flips with direction so the right screen rides on top */
