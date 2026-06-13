@@ -46,11 +46,15 @@ Everything flows through `src/engine/` and `src/data/`, keyed everywhere by **ex
 
 The numeric constants in `progression.ts` and `schedule.ts` (rep ranges, rest seconds, recovery hours, weight steps) encode training-science consensus and are documented inline with rationale. Treat them as load-bearing; the audit script asserts them.
 
-Adding an exercise touches three data files in lockstep: `data/exercises.ts` (the record + its `substitutions` fallback chain), `data/coaching.ts` (map it to a movement `Pattern` for technique content + the generated animation), and optionally `data/demoMedia.ts` (real demo photos).
+The active split is either one of the **built-in** programs (`data/splits.ts`; `recommendSplitId` proposes one from the profile) or a **user-authored custom split**: `ScheduleBuilder` lets the user pick a per-day `Focus` (`data/customSplit.ts`), `buildCustomSplit` materializes that into a `Split` of real exercise ids, and it's stored on `state.customSplit` and selected by `currentSplitId === CUSTOM_SPLIT_ID`. `recommendDay`'s pick is a *default*, not a lock — `WorkoutPicker` lets the user train any day of the active split instead.
+
+Adding an exercise touches three data files in lockstep: `data/exercises.ts` (the record + its `substitutions` fallback chain), `data/coaching.ts` (map it to a movement `Pattern` for technique content), and optionally `data/demoMedia.ts` (real demo photos). The how-to demo (`components/ExerciseAnimation.tsx`) is **not** per-exercise art: it's one reusable side-view skeletal SVG rig that CSS-animates between the two poses (A↔B) its `Pattern` supplies — fully offline, respects `prefers-reduced-motion`, with only `scene`/`load` differentiated per exercise.
 
 ### State
 
 A single `useReducer` store in `src/state/store.tsx` holds the entire `AppState` (`src/types.ts`) and is the **only** writer of state. It persists to `localStorage` under key `gymapp.v1` on every change, and loads with a `{ ...EMPTY, ...saved }` merge so older saved states stay forward-compatible — when you add an `AppState` field, give `EMPTY` a default and keep existing fields optional. The reducer also owns mid-workout transient state (`active.setIdx`, `active.restEndsAt`) so a workout survives navigating away or reloading the app.
+
+The `Settings` screen owns the few user-facing knobs: `theme` (`'dark' | 'light'`, applied via `data-theme`) and `settings.custom` — a global set/rep override that, when on, replaces every exercise's programmed targets with `settings.sets` × `settings.reps`. The profile itself (experience/goal/equipment/`units`, the last `'kg' | 'lb'` and optional for pre-units saves) is set in Onboarding and re-edited via "redo setup," not toggled here. Keep new options off this screen unless they earn their place (see the minimalism constraint above).
 
 ### Navigation
 
