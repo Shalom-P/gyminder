@@ -8,13 +8,16 @@ Everything you need to clear Apple's privacy requirements for **Gyminder**
 
 | Item | File | Status |
 | --- | --- | --- |
-| App privacy manifest | [`ios/App/App/PrivacyInfo.xcprivacy`](../ios/App/App/PrivacyInfo.xcprivacy) | ✅ created |
-| Widget privacy manifest | [`ios/App/RestWidget/PrivacyInfo.xcprivacy`](../ios/App/RestWidget/PrivacyInfo.xcprivacy) | ✅ created |
-| Privacy policy page | [`docs/privacy-policy.html`](./privacy-policy.html) | ✅ created (needs hosting — step 2) |
+| App privacy manifest | [`ios/App/App/PrivacyInfo.xcprivacy`](../ios/App/App/PrivacyInfo.xcprivacy) | ✅ created (lints OK) |
+| Widget privacy manifest | [`ios/App/RestWidget/PrivacyInfo.xcprivacy`](../ios/App/RestWidget/PrivacyInfo.xcprivacy) | ✅ created (lints OK) |
+| Privacy policy page | [`docs/privacy-policy.html`](./privacy-policy.html) | ✅ **live** → https://shalom-p.github.io/gyminder/privacy-policy.html |
+| Support page | [`docs/support.html`](./support.html) | ✅ **live** → https://shalom-p.github.io/gyminder/support.html |
+| GitHub Pages | `main` / `/docs` | ✅ enabled, HTTPS enforced |
 | Encryption declaration | `Info.plist` → `ITSAppUsesNonExemptEncryption = false` | ✅ already set |
 
-Three manual steps remain: **(1)** add the manifests to their Xcode targets,
-**(2)** host the privacy policy and get its URL, **(3)** fill in App Store Connect.
+The hosting is done (step 2 below is complete). Two manual steps remain:
+**(1)** add the manifests to their Xcode targets, and **(3)** fill in App Store
+Connect (paste the URLs above + answer the privacy questionnaire).
 
 ---
 
@@ -42,40 +45,42 @@ the app bundle. They must be members of the right target's **Copy Bundle Resourc
 
 ---
 
-## Step 2 — Host the privacy policy and get its URL
+## Step 2 — Host the privacy policy and support page ✅ DONE
 
-App Store Connect requires a **publicly reachable** privacy policy URL — mandatory
-even though the app collects nothing. The page is already written; it just needs a home.
+GitHub Pages is enabled (`main` / `/docs`, HTTPS enforced). Both pages are live and
+were verified returning HTTP 200:
 
-**Recommended: GitHub Pages (free, zero infra, matches the "no backend" ethos).**
+| URL | Use |
+| --- | --- |
+| https://shalom-p.github.io/gyminder/privacy-policy.html | Privacy Policy URL |
+| https://shalom-p.github.io/gyminder/support.html | Support URL |
 
-1. On GitHub: **`Shalom-P/gyminder` → Settings → Pages**.
-2. Under "Build and deployment", Source = **Deploy from a branch**.
-3. Branch = **`main`**, folder = **`/docs`**. Save.
-4. After it builds (~1 min), your policy is live at:
+To re-enable later if ever disabled: **`Shalom-P/gyminder` → Settings → Pages** →
+Source *Deploy from a branch* → branch **`main`**, folder **`/docs`**.
 
-   ```
-   https://shalom-p.github.io/gyminder/privacy-policy.html
-   ```
-
-   That is the URL you paste into App Store Connect.
-
-Alternatives if you'd rather not use Pages: any static host works — Netlify, Cloudflare
-Pages, Vercel, or even a Gist rendered through htmlpreview. The only requirement is that
-the URL loads the policy publicly without a login.
-
-**Before publishing, confirm the contact email** in `privacy-policy.html`
-(currently `rahulnalluru007@gmail.com`) is the one you want shown publicly.
+**Confirm the contact email** in `privacy-policy.html` and `support.html`
+(currently `rahulnalluru007@gmail.com`) is the address you want shown publicly. Editing
+those files and pushing to `main` republishes automatically.
 
 ---
 
 ## Step 3 — Fill in App Store Connect
 
-### 3a. Privacy Policy URL
-**App Store Connect → your app → App Privacy → Privacy Policy → Edit** → paste the
-URL from step 2. (Also appears under the app's version "App Information".)
+### 3a. Support URL (required to submit)
+On the version page (**Distribution → your version → "App Store" metadata**), paste
+into **Support URL**:
+```
+https://shalom-p.github.io/gyminder/support.html
+```
+Marketing URL is optional; Copyright is optional.
 
-### 3b. App Privacy questionnaire ("nutrition label")
+### 3b. Privacy Policy URL
+**App Store Connect → your app → App Privacy → Privacy Policy → Edit** → paste:
+```
+https://shalom-p.github.io/gyminder/privacy-policy.html
+```
+
+### 3c. App Privacy questionnaire ("nutrition label")
 **App Store Connect → App Privacy → Get Started.**
 
 - First question: *"Do you or your third-party partners collect data from this app?"*
@@ -87,7 +92,7 @@ URL from step 2. (Also appears under the app's version "App Information".)
 > account, or any networked feature, you must come back and update both this label and
 > the `PrivacyInfo.xcprivacy` manifests — Apple cross-checks them and rejects mismatches.
 
-### 3c. Export compliance (encryption)
+### 3d. Export compliance (encryption)
 Already handled: `Info.plist` has `ITSAppUsesNonExemptEncryption = false`, so Apple
 won't prompt you about encryption at each upload. (Gyminder uses only standard HTTPS/OS
 encryption, which is exempt — and in fact makes no network calls at all.)
