@@ -12,13 +12,19 @@ const SRC = path.resolve(import.meta.dirname, '..', 'src')
 const load = (rel) => import(pathToFileURL(path.join(SRC, rel)).href)
 
 const { EXERCISES, getExercise } = await load('data/exercises.ts')
-const { SPLITS, SPLIT_MAP, getActiveSplit } = await load('data/splits.ts')
+const { SPLITS, SPLIT_MAP, getActiveSplit, recommendSplitId } = await load('data/splits.ts')
 const {
-  initProgress, applyResult, buildPlan, restSeconds, describeTarget, targetParts
+  initProgress, applyResult, buildPlan, restSeconds, describeTarget, targetParts, prescribe
 } = await load('engine/progression.ts')
 const {
-  recommendDay, nextReadyInfo, listDayInfo, relativeTime, formatIn
+  recommendDay, nextReadyInfo, listDayInfo, relativeTime, formatIn, recoveryHours
 } = await load('engine/schedule.ts')
+const { isBodyweight } = await load('engine/equipment.ts')
+const { reducer, EMPTY } = await load('state/store.tsx')
+const profileOf = (extra = {}) => ({
+  experience: 'intermediate', goal: 'muscle', daysPerWeek: 4, equipment: 'full', units: 'kg', ...extra
+})
+const unloaded = (ex) => isBodyweight(ex) || ex.unit === 'sec'
 
 let pass = 0, fail = 0, warn = 0
 const fails = [], warns = []
@@ -38,15 +44,19 @@ const exercises = Object.values(EXERCISES)
 
 // ─────────────────────────────────────────────────────────────────────────
 H('A. REST TIMES (seconds between sets)')
-console.log('Rule: compound 180s · accessory 120s · isolation 90s (Schoenfeld/Grgic meta-analyses).')
+console.log('Rule: compound 180s · accessory 120s · isolation 90s (Schoenfeld 2016; Singer 2024);')
+console.log('      "Get stronger" loaded work: compound 240s · accessory 150s (Grgic 2018; ACSM 2009).')
 const REST_RULE = { compound: 180, accessory: 120, isolation: 90 }
+const REST_STRENGTH = { compound: 240, accessory: 150, isolation: 90 }
 const byType = { compound: [], accessory: [], isolation: [] }
 for (const ex of exercises) byType[ex.type].push(ex)
 for (const t of ['compound', 'accessory', 'isolation']) {
-  const sample = byType[t][0]
-  console.log(`  ${t.padEnd(10)} → ${restSeconds(sample)}s  (${byType[t].length} exercises)`)
+  const sample = byType[t].find((e) => !unloaded(e))
+  console.log(`  ${t.padEnd(10)} → ${restSeconds(sample)}s · strength ${restSeconds(sample, profileOf({ goal: 'strength' }))}s  (${byType[t].length} exercises)`)
   for (const ex of byType[t]) {
     ok(`rest ${ex.id} (${t})`, restSeconds(ex) === REST_RULE[t], `got ${restSeconds(ex)}s, expected ${REST_RULE[t]}s`)
+    const want = unloaded(ex) ? REST_RULE[t] : REST_STRENGTH[t]
+    ok(`rest ${ex.id} (${t}, strength)`, restSeconds(ex, profileOf({ goal: 'strength' })) === want)
   }
 }
 // mm:ss formatting (mirrors Session.mmss) at the three rest lengths
@@ -58,44 +68,38 @@ ok('mmss 90', mmss(90) === '1:30')
 ok('mmss 5', mmss(5) === '0:05')
 
 // ─────────────────────────────────────────────────────────────────────────
-H('B. RECOVERY WINDOWS (hours) + scheduling gaps')
-const RECOVERY_RULE = {
-  chest: 60, back: 60, quads: 60, hamstrings: 60, glutes: 60,
-  shoulders: 48, biceps: 36, triceps: 36, core: 24, calves: 24
-}
-// Re-derive from a controlled single-muscle history and check readyAt.
+H('B. RECOVERY (hours) — by session volume, not muscle size + scheduling gaps')
+console.log('Rule: ≤4 fractional sets → 24h · 5-9.5 → 48h · ≥10 → 72h (Belcher 2019; Soares 2015;')
+console.log('      Morán-Navarro 2017). Primary mover = 1 per set, synergist = 0.5 (Pelland 2025).')
 const MIN_GAP_H = 20
-for (const [muscle, hrs] of Object.entries(RECOVERY_RULE)) {
-  // find an exercise whose primary is this muscle
-  const ex = exercises.find((e) => e.primary === muscle)
-  if (!ex) { ok(`recovery ${muscle}`, false, 'no exercise for muscle'); continue }
-  const now = Date.UTC(2026, 0, 10, 12, 0, 0)
-  const trainedAt = now - hrs * HOUR // exactly at the window edge
-  const split = { id: 'x', name: 'x', daysPerWeek: 1, levels: [], blurb: '', days: [{ id: 'd', label: 'D', exercises: [ex.id] }] }
-  const state = {
-    profile: { experience: 'intermediate', goal: 'muscle', daysPerWeek: 1, equipment: 'full', units: 'kg' },
-    currentSplitId: 'x', rotationIndex: 0, progress: {},
-    history: [{ splitId: 'x', dayId: 'd', dayLabel: 'D', at: trainedAt, entries: [{ exerciseId: ex.id, status: 'done' }] }],
-    lastWorkoutAt: trainedAt, active: null, customSplit: null
+for (const [sets, hrs] of [[1, 24], [4, 24], [5, 48], [9.5, 48], [10, 72], [16, 72]]) {
+  ok(`recoveryHours(${sets}) = ${hrs}`, recoveryHours(sets) === hrs, `got ${recoveryHours(sets)}`)
+}
+for (const muscle of ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'biceps', 'triceps', 'core', 'calves']) {
+  // Same rule for every muscle: one exercise of it, at 3 / 6 / 12 sets.
+  const ex = exercises.find((e) => e.primary === muscle && !unloaded(e)) ?? exercises.find((e) => e.primary === muscle)
+  const parts = []
+  for (const sets of [3, 6, 12]) {
+    const now = Date.UTC(2026, 0, 10, 12, 0, 0)
+    const trainedAt = now - 1 * HOUR
+    const split = { id: 'custom', name: 'x', daysPerWeek: 1, levels: [], blurb: '', days: [{ id: 'd', label: 'D', exercises: [ex.id] }] }
+    const state = {
+      ...EMPTY, profile: profileOf(), currentSplitId: 'custom', customSplit: split,
+      history: [{ splitId: 'custom', dayId: 'd', dayLabel: 'D', at: trainedAt, entries: [{ exerciseId: ex.id, status: 'done', sets }] }],
+      lastWorkoutAt: trainedAt
+    }
+    const info = listDayInfo(state, now)[0]
+    const expected = trainedAt + Math.max(recoveryHours(sets), MIN_GAP_H) * HOUR
+    parts.push(`${sets} sets→${Math.round((info.readyAt - trainedAt) / HOUR)}h`)
+    ok(`recovery ${muscle} after ${sets} sets`, Math.abs(info.readyAt - expected) < 60_000, `readyAt off by ${(info.readyAt - expected) / HOUR}h`)
   }
-  SPLIT_MAP['x'] = split // temporary registration so getActiveSplit resolves
-  const info = listDayInfo(state, now)[0]
-  // readyAt should equal trainedAt + recovery (or the MIN_GAP floor, whichever later)
-  const expected = Math.max(trainedAt + hrs * HOUR, trainedAt + MIN_GAP_H * HOUR)
-  console.log(`  ${muscle.padEnd(11)} ${String(hrs).padStart(2)}h → readyAt offset ${Math.round((info.readyAt - trainedAt) / HOUR)}h (ready=${info.ready})`)
-  ok(`recovery ${muscle} = ${hrs}h`, Math.abs(info.readyAt - expected) < 60_000, `readyAt off by ${(info.readyAt - expected) / HOUR}h`)
-  delete SPLIT_MAP['x']
+  console.log(`  ${muscle.padEnd(11)} ${parts.join(' · ')}`)
 }
-console.log(`  MIN_GAP between any two sessions: ${MIN_GAP_H}h`)
-// muscles recovering faster than MIN_GAP are floored to MIN_GAP
-for (const m of ['core', 'calves', 'biceps', 'triceps']) {
-  flag(`${m} (${RECOVERY_RULE[m]}h) ≥ MIN_GAP floor`, true,
-    `${RECOVERY_RULE[m]}h ${RECOVERY_RULE[m] < MIN_GAP_H ? '< floored to 20h' : ''}`)
-}
+console.log(`  MIN_GAP between any two sessions: ${MIN_GAP_H}h (light 24h sessions are floored at it only below 20h)`)
 
 // ─────────────────────────────────────────────────────────────────────────
-H('C. REP RANGES & SET COUNTS (per exercise)')
-console.log('Rule of thumb: compound 4-8 · accessory 8-12 · isolation 10-20 · sets 3-4.')
+H('C. REP RANGES & SET COUNTS (per exercise, "Build muscle" defaults)')
+console.log('Rule: loaded compound 6-10 (deadlift 5-8) · accessory 8-12 · isolation 10-20 · unloaded higher · sets 2-4.')
 console.log('  id'.padEnd(20) + 'type'.padEnd(11) + 'sets  reps     unit')
 for (const ex of exercises) {
   console.log(
@@ -105,12 +109,11 @@ for (const ex of exercises) {
   ok(`${ex.id} repMin≤repMax`, ex.repMin <= ex.repMax)
   ok(`${ex.id} sets 1-5`, ex.sets >= 1 && ex.sets <= 5, `sets=${ex.sets}`)
   ok(`${ex.id} reps positive`, ex.repMin > 0)
-  // soft guidance checks (warn, not fail)
-  if (ex.unit !== 'sec') {
-    if (ex.type === 'compound') flag(`${ex.id} compound reps ≤ 12`, ex.repMax <= 12, `${ex.repMin}-${ex.repMax}`)
-    if (ex.type === 'isolation') flag(`${ex.id} isolation reps ≥ 8`, ex.repMin >= 8, `${ex.repMin}-${ex.repMax}`)
-  }
-  flag(`${ex.id} sets 3-4`, ex.sets >= 3 && ex.sets <= 4, `sets=${ex.sets}`)
+  if (!unloaded(ex) && ex.type === 'compound') ok(`${ex.id} loaded compound within 5-12`, ex.repMin >= 5 && ex.repMax <= 12, `${ex.repMin}-${ex.repMax}`)
+  if (!unloaded(ex) && ex.type === 'isolation') ok(`${ex.id} loaded isolation within 8-20`, ex.repMin >= 8 && ex.repMax <= 20, `${ex.repMin}-${ex.repMax}`)
+  // Light loads only work near failure; past ~30 reps a harder variation is due.
+  if (unloaded(ex) && ex.unit !== 'sec') ok(`${ex.id} unloaded reps ≤ 30`, ex.repMax <= 30, `${ex.repMin}-${ex.repMax}`)
+  flag(`${ex.id} sets 2-4`, ex.sets >= 2 && ex.sets <= 4, `sets=${ex.sets}`)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -128,6 +131,20 @@ for (let i = 0; i < 6; i++) {
   ok(`squat step ≥ 5`, step >= 5, `step ${step}`)
   ok(`squat reset to repMin`, p.targetReps === getExercise('squat').repMin)
   prevW = p.suggestedWeight
+}
+sub('Heavy lower-body step only from 50 kg / 110 lb (keeps the jump ≤10%)')
+for (const [w, units, want] of [[40, 'kg', 2.5], [50, 'kg', 5], [100, 'lb', 5], [110, 'lb', 10]]) {
+  const sq = getExercise('squat')
+  const r = applyResult({ ...initProgress(sq), suggestedWeight: w }, sq, { exerciseId: 'squat', status: 'done', reps: sq.repMax, weight: w }, units)
+  console.log(`  squat ${w}${units} at the top → +${r.suggestedWeight - w}${units}`)
+  ok(`squat ${w}${units} step ${want}`, r.suggestedWeight - w === want)
+}
+sub('Unloaded moves hold at the top (no reset to an easier target)')
+{
+  const pu = getExercise('pushup')
+  const r = applyResult({ ...initProgress(pu), targetReps: pu.repMax }, pu, { exerciseId: 'pushup', status: 'done', reps: pu.repMax })
+  console.log(`  push-up ${pu.repMax} reps → next ${r.targetReps} (session note suggests a harder variation)`)
+  ok('push-up holds at repMax', r.targetReps === pu.repMax)
 }
 sub('Isolation (lat_raise, base step 2.5kg)')
 let q = initProgress(getExercise('lat_raise'))
@@ -176,8 +193,8 @@ const prog = {
   plank: { suggestedWeight: null, targetReps: 45, streak: 0, misses: 0 }
 }
 for (const id of ['squat', 'pushup', 'plank']) {
-  const t = targetParts(id, prog, 'kg')
-  const s = describeTarget(id, prog, 'kg')
+  const t = targetParts(id, prog, profileOf())
+  const s = describeTarget(id, prog, profileOf())
   console.log(`  ${id.padEnd(8)} parts={sets:${t.sets}, reps:${t.reps}, isTime:${t.isTime}, bw:${t.bodyweight}, w:${t.weight}}  | "${s}"`)
   ok(`${id} sets match`, t.sets === EXERCISES[id].sets)
   ok(`${id} reps match`, t.reps === prog[id].targetReps)
@@ -186,6 +203,24 @@ for (const id of ['squat', 'pushup', 'plank']) {
 ok('plank isTime true', targetParts('plank', prog).isTime === true)
 ok('pushup bodyweight true', targetParts('pushup', prog).bodyweight === true)
 ok('squat isTime false', targetParts('squat', prog).isTime === false)
+
+sub('Prescription by goal (intermediate) — squat / bench / deadlift / lat raise')
+for (const goal of ['muscle', 'strength', 'general']) {
+  const row = ['squat', 'bb_bench', 'deadlift', 'lat_raise'].map((id) => {
+    const r = prescribe(getExercise(id), profileOf({ goal }))
+    return `${id} ${r.sets}×${r.repMin}-${r.repMax}`
+  })
+  console.log(`  ${goal.padEnd(8)} ${row.join(' · ')}`)
+}
+{
+  const r = prescribe(getExercise('squat'), profileOf({ experience: 'beginner' }))
+  console.log(`  beginner squat ${r.sets}×${r.repMin}-${r.repMax}  (ACSM novice 8-12, ≤3 sets)`)
+  ok('beginner squat 3×8-12', r.sets === 3 && r.repMin === 8 && r.repMax === 12)
+  const s = prescribe(getExercise('squat'), profileOf({ goal: 'strength' }))
+  ok('strength squat 4×3-6', s.sets === 4 && s.repMin === 3 && s.repMax === 6)
+  const g = prescribe(getExercise('bb_bench'), profileOf({ goal: 'general' }))
+  ok('general bench 4×8-12', g.repMin === 8 && g.repMax === 12)
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 H('G. TIME FORMATTERS')
@@ -208,60 +243,31 @@ for (const [name, got, want] of cases) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-H('H. EVENT SEQUENCE — full session, set-by-set, mark→finalize')
+H('H. EVENT SEQUENCE — full session, set-by-set, mark→finalize (real reducer)')
 {
-  const split = SPLIT_MAP['full_body_3']
-  const day = split.days[0] // fb_a: squat, bb_bench, bb_row, db_ohp, bb_curl, plank
-  const profile = { experience: 'intermediate', goal: 'muscle', daysPerWeek: 3, equipment: 'full', units: 'kg' }
-  const { items } = buildPlan(day, profile, {})
+  const day = SPLIT_MAP['full_body_3'].days[0]
+  let state = { ...EMPTY, profile: profileOf({ daysPerWeek: 3 }), currentSplitId: 'full_body_3' }
+  state = reducer(state, { type: 'startDay', dayId: day.id })
+  const items = state.active.plan
   console.log(`  Plan (${items.length} exercises): ${items.map((i) => i.exerciseId).join(', ')}`)
-
-  // reducer mirror (matches store.tsx) so we can assert ordering precisely
-  let state = {
-    profile, currentSplitId: 'full_body_3', rotationIndex: 0, progress: {},
-    history: [], lastWorkoutAt: null,
-    active: { splitId: 'full_body_3', dayId: day.id, dayLabel: day.label, cursor: 0, plan: items, entries: [] },
-    customSplit: null
-  }
-  const mark = (st, status) => {
-    const a = st.active
-    const item = a.plan[a.cursor]
-    const entry = { exerciseId: item.exerciseId, status }
-    const entries = [...a.entries, entry]
-    const advanced = { ...st, active: { ...a, cursor: a.cursor + 1, entries } }
-    if (a.cursor + 1 >= a.plan.length) {
-      // finalize
-      const progress = { ...st.progress }
-      for (const e of entries) {
-        const ex = EXERCISES[e.exerciseId]; if (!ex) continue
-        progress[e.exerciseId] = applyResult(progress[e.exerciseId] ?? initProgress(ex), ex, e)
-      }
-      const dayCount = split.days.length
-      return {
-        ...st, progress,
-        history: [...st.history, { splitId: a.splitId, dayId: a.dayId, dayLabel: a.dayLabel, at: 1_000, entries }],
-        lastWorkoutAt: 1_000, rotationIndex: (st.rotationIndex + 1) % dayCount, active: null
-      }
-    }
-    return advanced
-  }
-
-  let cursorTrace = []
+  const cursorTrace = []
   for (let i = 0; i < items.length; i++) {
     cursorTrace.push(state.active.cursor)
-    // within an exercise, the UI walks setIdx 0..sets-1; counter = sets-setIdx
-    const ex = EXERCISES[items[i].exerciseId]
-    const counter = Array.from({ length: ex.sets }, (_, k) => ex.sets - k)
     ok(`ex ${i} cursor==i`, state.active.cursor === i)
-    ok(`ex ${i} counter starts ${ex.sets}`, counter[0] === ex.sets)
-    state = mark(state, 'done')
+    const sets = targetParts(items[i].exerciseId, state.progress, state.profile).sets
+    for (let k = 1; k < sets; k++) {
+      state = reducer(state, { type: 'advanceSet', restEndsAt: 0 })
+      ok(`ex ${i} set ${k + 1} index`, state.active.setIdx === k)
+    }
+    state = reducer(state, { type: 'mark', status: 'done' })
   }
   console.log(`  cursor advanced: ${cursorTrace.join(' → ')} → (finalized)`)
   ok('cursor walked 0..n-1', cursorTrace.join(',') === items.map((_, i) => i).join(','))
   ok('active cleared after last', state.active === null)
   ok('history has 1 record', state.history.length === 1)
   ok('history entries count', state.history[0].entries.length === items.length)
-  ok('lastWorkoutAt set', state.lastWorkoutAt === 1_000)
+  ok('history entries carry the sets performed', state.history[0].entries.every((e) => e.sets === targetParts(e.exerciseId, {}, state.profile).sets))
+  ok('lastWorkoutAt set', state.lastWorkoutAt === state.history[0].at)
   ok('rotationIndex advanced 0→1', state.rotationIndex === 1)
   ok('progression applied to squat', !!state.progress.squat && state.progress.squat.streak === 1)
   console.log(`  post-finalize: rotationIndex=${state.rotationIndex}, history=${state.history.length}, squat.streak=${state.progress.squat.streak}`)
@@ -288,15 +294,23 @@ H('I. EVENT SEQUENCE — rest timer between sets')
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+H('K. RECOMMENDED SPLIT per profile (≥2×/week per muscle; beginners ≤4 days)')
+for (const exp of ['beginner', 'intermediate', 'advanced']) {
+  const row = [3, 4, 5, 6].map((d) => `${d}d→${recommendSplitId(profileOf({ experience: exp, daysPerWeek: d }))}`)
+  console.log(`  ${exp.padEnd(12)} ${row.join('  ')}`)
+  for (const d of [3, 4, 5, 6]) {
+    const sid = recommendSplitId(profileOf({ experience: exp, daysPerWeek: d }))
+    ok(`${exp} ${d}d not once-a-week`, sid !== 'ppl_3' && sid !== 'bro_5', sid)
+  }
+}
+console.log(`  no equipment, 6d → ${recommendSplitId(profileOf({ daysPerWeek: 6, equipment: 'none' }))}`)
+
+// ─────────────────────────────────────────────────────────────────────────
 H('J. EVENT SEQUENCE — recommendation after a workout')
 {
   const split = SPLIT_MAP['upper_lower_4']
   const now = Date.UTC(2026, 0, 10, 9, 0, 0)
-  const state = {
-    profile: { experience: 'intermediate', goal: 'muscle', daysPerWeek: 4, equipment: 'full', units: 'kg' },
-    currentSplitId: 'upper_lower_4', rotationIndex: 0, progress: {},
-    history: [], lastWorkoutAt: null, active: null, customSplit: null
-  }
+  const state = { ...EMPTY, profile: profileOf(), currentSplitId: 'upper_lower_4', history: [] }
   const r0 = recommendDay(state, now)
   console.log(`  cold start → ${r0.day.id} (recovered=${r0.recovered})`)
   ok('cold start ready', r0.recovered === true)

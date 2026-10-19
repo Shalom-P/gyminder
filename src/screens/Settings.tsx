@@ -1,5 +1,14 @@
 import { useStore } from '../state/store'
 import { getActiveSplit } from '../data/splits'
+import { EXERCISES } from '../data/exercises'
+import type { Equipment } from '../types'
+
+const KIT: Record<Equipment, string> = {
+  full: 'full gym',
+  dumbbell: 'dumbbells',
+  bodyweight: 'bodyweight + bar',
+  none: 'no equipment'
+}
 
 function Stepper({
   value,
@@ -40,10 +49,16 @@ export default function Settings({
 }: {
   onChangeMode: () => void
 }) {
-  const { state, resetAll, redoSetup, setTargets, setTheme } = useStore()
+  const { state, resetAll, redoSetup, setTargets, setTheme, clearSwap } =
+    useStore()
   const split = getActiveSplit(state)
   const p = state.profile
   const set = state.settings
+  // Remembered swaps from the session's Swap sheet (ids removed by a later data
+  // update are ignored).
+  const swaps = Object.entries(state.swaps).filter(
+    ([from, to]) => EXERCISES[from] && EXERCISES[to]
+  )
 
   return (
     <div className="frame tabbed">
@@ -100,6 +115,27 @@ export default function Settings({
           )}
         </div>
 
+        {swaps.length > 0 && (
+          <div className="card">
+            <span className="label">Exercise swaps</span>
+            {swaps.map(([from, to]) => (
+              <div className="set-row" key={from}>
+                <span className="swap-pair">
+                  <span className="k">{EXERCISES[to].name}</span>
+                  <span className="muted">instead of {EXERCISES[from].name}</span>
+                </span>
+                <button
+                  className="btn ghost swap-undo"
+                  onClick={() => clearSwap(from)}
+                  aria-label={`Undo swap: back to ${EXERCISES[from].name}`}
+                >
+                  Undo
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="card">
           <span className="label">Appearance</span>
           <div className="seg2">
@@ -122,7 +158,7 @@ export default function Settings({
           <span className="label">Profile</span>
           <span className="muted" style={{ textTransform: 'capitalize' }}>
             {p
-              ? `${p.experience} · ${p.goal} · ${p.equipment} · ${p.units ?? 'kg'}`
+              ? `${p.experience} · ${p.goal} · ${KIT[p.equipment] ?? p.equipment} · ${p.units ?? 'kg'}`
               : '—'}
           </span>
         </div>

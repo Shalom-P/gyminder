@@ -12,36 +12,36 @@ export const SPLITS: Split[] = [
     id: 'full_body_3',
     name: 'Full Body',
     daysPerWeek: 3,
-    levels: ['beginner', 'intermediate'],
-    blurb: 'Every muscle, 3 sessions a week. Best for beginners and busy weeks.',
+    levels: ['beginner', 'intermediate', 'advanced'],
+    blurb: 'Every major muscle 2-3× a week in 3 sessions. Best for beginners and busy weeks.',
     days: [
-      { id: 'fb_a', label: 'Full Body A', exercises: ['squat', 'bb_bench', 'bb_row', 'db_ohp', 'bb_curl', 'plank'] },
-      { id: 'fb_b', label: 'Full Body B', exercises: ['rdl', 'ohp', 'lat_pulldown', 'incline_db', 'pushdown', 'calf_raise'] },
-      { id: 'fb_c', label: 'Full Body C', exercises: ['leg_press', 'db_bench', 'cable_row', 'lat_raise', 'hammer_curl', 'hanging_leg_raise'] }
+      { id: 'fb_a', label: 'Full Body A', exercises: ['squat', 'bb_bench', 'bb_row', 'leg_curl', 'db_ohp', 'calf_raise'] },
+      { id: 'fb_b', label: 'Full Body B', exercises: ['rdl', 'incline_db', 'lat_pulldown', 'hip_thrust', 'bss', 'bb_curl'] },
+      { id: 'fb_c', label: 'Full Body C', exercises: ['leg_press', 'db_bench', 'cable_row', 'leg_curl', 'overhead_ext', 'hanging_leg_raise'] }
     ]
   },
   {
     id: 'upper_lower_4',
     name: 'Upper / Lower',
     daysPerWeek: 4,
-    levels: ['intermediate', 'advanced'],
+    levels: ['beginner', 'intermediate', 'advanced'],
     blurb: 'Balanced 4-day split. Each muscle trained twice a week.',
     days: [
-      { id: 'ul_ua', label: 'Upper A', exercises: ['bb_bench', 'bb_row', 'db_ohp', 'lat_pulldown', 'bb_curl', 'pushdown'] },
+      { id: 'ul_ua', label: 'Upper A', exercises: ['bb_bench', 'bb_row', 'db_ohp', 'lat_pulldown', 'lat_raise', 'bb_curl'] },
       { id: 'ul_la', label: 'Lower A', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'calf_raise', 'plank'] },
-      { id: 'ul_ub', label: 'Upper B', exercises: ['incline_db', 'pullup', 'ohp', 'cable_row', 'hammer_curl', 'db_skullcrusher'] },
-      { id: 'ul_lb', label: 'Lower B', exercises: ['deadlift', 'leg_press', 'lunge', 'leg_ext', 'calf_raise', 'hanging_leg_raise'] }
+      { id: 'ul_ub', label: 'Upper B', exercises: ['incline_db', 'pullup', 'cable_fly', 'cable_row', 'overhead_ext', 'face_pull'] },
+      { id: 'ul_lb', label: 'Lower B', exercises: ['deadlift', 'bss', 'leg_curl', 'leg_ext', 'calf_raise', 'hanging_leg_raise'] }
     ]
   },
   {
     id: 'ppl_3',
     name: 'Push / Pull / Legs (3-day)',
     daysPerWeek: 3,
-    levels: ['beginner', 'intermediate'],
-    blurb: 'The classic 3-day PPL. Simple, effective, one rotation a week.',
+    levels: ['intermediate', 'advanced'],
+    blurb: 'Each muscle once a week — simple, but below the twice-weekly guideline.',
     days: [
-      { id: 'ppl3_push', label: 'Push', exercises: ['bb_bench', 'ohp', 'incline_db', 'lat_raise', 'pushdown', 'overhead_ext'] },
-      { id: 'ppl3_pull', label: 'Pull', exercises: ['deadlift', 'pullup', 'bb_row', 'cable_row', 'bb_curl', 'hammer_curl'] },
+      { id: 'ppl3_push', label: 'Push', exercises: ['bb_bench', 'ohp', 'incline_db', 'cable_fly', 'lat_raise', 'overhead_ext'] },
+      { id: 'ppl3_pull', label: 'Pull', exercises: ['pullup', 'bb_row', 'cable_row', 'face_pull', 'bb_curl', 'hammer_curl'] },
       { id: 'ppl3_legs', label: 'Legs', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'calf_raise', 'hanging_leg_raise'] }
     ]
   },
@@ -53,11 +53,11 @@ export const SPLITS: Split[] = [
     blurb: 'High-volume PPL run twice through. Each muscle hit twice a week.',
     days: [
       { id: 'ppl6_push_a', label: 'Push A', exercises: ['bb_bench', 'ohp', 'incline_db', 'lat_raise', 'pushdown'] },
-      { id: 'ppl6_pull_a', label: 'Pull A', exercises: ['deadlift', 'pullup', 'bb_row', 'face_pull', 'bb_curl'] },
+      { id: 'ppl6_pull_a', label: 'Pull A', exercises: ['pullup', 'bb_row', 'cs_db_row', 'face_pull', 'bb_curl', 'hanging_leg_raise'] },
       { id: 'ppl6_legs_a', label: 'Legs A', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'calf_raise'] },
       { id: 'ppl6_push_b', label: 'Push B', exercises: ['db_bench', 'db_ohp', 'cable_fly', 'lat_raise', 'overhead_ext'] },
-      { id: 'ppl6_pull_b', label: 'Pull B', exercises: ['lat_pulldown', 'cable_row', 'db_row', 'rear_delt_fly', 'hammer_curl'] },
-      { id: 'ppl6_legs_b', label: 'Legs B', exercises: ['deadlift', 'hip_thrust', 'lunge', 'leg_ext', 'calf_raise'] }
+      { id: 'ppl6_pull_b', label: 'Pull B', exercises: ['lat_pulldown', 'cable_row', 'db_row', 'rear_delt_fly', 'hammer_curl', 'cable_crunch'] },
+      { id: 'ppl6_legs_b', label: 'Legs B', exercises: ['deadlift', 'hip_thrust', 'bss', 'leg_curl', 'leg_ext', 'calf_raise'] }
     ]
   },
   {
@@ -65,13 +65,13 @@ export const SPLITS: Split[] = [
     name: 'Bro Split',
     daysPerWeek: 5,
     levels: ['intermediate', 'advanced'],
-    blurb: 'One muscle group per day across 5 days. High per-session volume.',
+    blurb: 'One muscle group per day — each trained once a week, below the twice-weekly guideline.',
     days: [
-      { id: 'bro_chest', label: 'Chest', exercises: ['bb_bench', 'incline_db', 'cable_fly', 'db_fly', 'dip'] },
-      { id: 'bro_back', label: 'Back', exercises: ['deadlift', 'pullup', 'bb_row', 'cable_row', 'face_pull'] },
-      { id: 'bro_shoulders', label: 'Shoulders', exercises: ['ohp', 'db_ohp', 'lat_raise', 'cable_lat_raise', 'rear_delt_fly'] },
+      { id: 'bro_chest', label: 'Chest', exercises: ['bb_bench', 'incline_db', 'cable_fly', 'dip'] },
+      { id: 'bro_back', label: 'Back', exercises: ['pullup', 'bb_row', 'cable_row', 'face_pull', 'hanging_leg_raise'] },
+      { id: 'bro_shoulders', label: 'Shoulders', exercises: ['ohp', 'lat_raise', 'cable_lat_raise', 'rear_delt_fly'] },
       { id: 'bro_legs', label: 'Legs', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'leg_ext', 'calf_raise'] },
-      { id: 'bro_arms', label: 'Arms', exercises: ['bb_curl', 'close_bench', 'hammer_curl', 'pushdown', 'overhead_ext'] }
+      { id: 'bro_arms', label: 'Arms', exercises: ['bb_curl', 'close_bench', 'hammer_curl', 'overhead_ext', 'pushdown', 'cable_crunch'] }
     ]
   },
   {
@@ -79,13 +79,13 @@ export const SPLITS: Split[] = [
     name: 'PPL + Upper / Lower',
     daysPerWeek: 5,
     levels: ['intermediate', 'advanced'],
-    blurb: 'Hybrid 5-day: upper body 3x, legs 2x a week. Great all-rounder.',
+    blurb: 'Hybrid 5-day: upper body 3×, legs 2× a week. Great all-rounder.',
     days: [
       { id: 'pplul_push', label: 'Push', exercises: ['bb_bench', 'ohp', 'incline_db', 'lat_raise', 'pushdown'] },
-      { id: 'pplul_pull', label: 'Pull', exercises: ['deadlift', 'pullup', 'bb_row', 'face_pull', 'bb_curl'] },
-      { id: 'pplul_legs', label: 'Legs', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'calf_raise'] },
+      { id: 'pplul_pull', label: 'Pull', exercises: ['pullup', 'bb_row', 'cs_db_row', 'face_pull', 'bb_curl'] },
+      { id: 'pplul_legs', label: 'Legs', exercises: ['squat', 'rdl', 'leg_press', 'leg_curl', 'calf_raise', 'plank'] },
       { id: 'pplul_upper', label: 'Upper', exercises: ['db_bench', 'cable_row', 'db_ohp', 'lat_pulldown', 'hammer_curl', 'db_skullcrusher'] },
-      { id: 'pplul_lower', label: 'Lower', exercises: ['deadlift', 'hip_thrust', 'lunge', 'leg_ext', 'hanging_leg_raise'] }
+      { id: 'pplul_lower', label: 'Lower', exercises: ['deadlift', 'hip_thrust', 'bss', 'leg_curl', 'calf_raise', 'hanging_leg_raise'] }
     ]
   }
 ]
@@ -113,11 +113,20 @@ export function getActiveSplit(
   return SPLIT_MAP[state.currentSplitId] ?? null
 }
 
-/** Pick the most evidence-appropriate split for the onboarding answers. */
+/**
+ * Pick the most evidence-appropriate split for the onboarding answers. Only
+ * splits that train every muscle at least twice a week are recommended — the
+ * ACSM (2026) and WHO (2020) minimum; once-a-week splits (3-day PPL, bro
+ * split) stay available but are labelled as below it. Beginners top out at
+ * four days: novices progress on 2-4 sessions a week (ACSM 2009), and the
+ * extra days add fatigue before they add muscle.
+ */
 export function recommendSplitId(p: Profile): string {
-  if (p.daysPerWeek >= 6) return 'ppl_6'
+  if (p.daysPerWeek <= 3) return 'full_body_3'
+  // With no equipment at all there is little to pull with, so dedicated pull
+  // days would be near-empty; upper/lower spreads it across the week instead.
+  if (p.daysPerWeek === 4 || p.experience === 'beginner' || p.equipment === 'none')
+    return 'upper_lower_4'
   if (p.daysPerWeek === 5) return 'ppl_ul_5'
-  if (p.daysPerWeek === 4) return 'upper_lower_4'
-  // 3 days
-  return p.experience === 'beginner' ? 'full_body_3' : 'ppl_3'
+  return 'ppl_6'
 }

@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
-import { restSeconds, targetParts } from '../engine/progression'
+import { restSeconds, targetParts, weightIncrement } from '../engine/progression'
 import { SetRoller, ValueRoller } from '../components/Rollers'
 import ExerciseDemo from '../components/ExerciseDemo'
+import SwapSheet from '../components/SwapSheet'
+import { sameMovements } from '../engine/alternatives'
 import { CheckIcon, XIcon } from '../components/icons'
 
 function mmss(sec: number): string {
@@ -46,13 +48,14 @@ export default function Session({
   onQuit: () => void
   onShowHow: (exerciseId: string) => void
 }) {
-  const { state, mark, abandon, advanceSet, setRest } = useStore()
+  const { state, mark, abandon, advanceSet, setRest, swapExercise } = useStore()
   const [reps, setReps] = useState<number | null>(null)
   const [weight, setWeight] = useState<number | null>(null)
   const [showDemo, setShowDemo] = useState(false)
   // The demo mounts on first open (its photos are hot-linked — don't fetch for
   // exercises never demoed) and stays mounted so hiding can cross-dissolve.
   const [demoMounted, setDemoMounted] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
   const [, setTick] = useState(0)
   // Completion-beat state: `pop` increments to replay the morph; `fly` is the
   // measured vector from screen centre to the current set-track segment (where
@@ -63,6 +66,7 @@ export default function Session({
   const pendingRef = useRef<number | null>(null)
   const frameRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
+  const swapBtnRef = useRef<HTMLButtonElement>(null)
   useEffect(
     () => () => {
       if (pendingRef.current != null) window.clearTimeout(pendingRef.current)
@@ -73,6 +77,9 @@ export default function Session({
   const a = state.active
   const units = state.profile?.units ?? 'kg'
   const cursor = a?.cursor ?? -1
+  // A swap replaces the exercise without moving the cursor, so per-exercise
+  // resets key on the exercise id too.
+  const exId = a?.plan[a.cursor]?.exerciseId
   // Set position and rest timer live in the store so they survive a trip to the
   // How-to screen (which unmounts this component) and even an app reload.
   const setIdx = a?.setIdx ?? 0
@@ -82,13 +89,13 @@ export default function Session({
   useEffect(() => {
     setShowDemo(false)
     setDemoMounted(false)
-  }, [cursor])
+  }, [cursor, exId])
 
   // Reset the dialed reps/weight at the start of every set.
   useEffect(() => {
     setReps(null)
     setWeight(null)
-  }, [cursor, setIdx])
+  }, [cursor, exId, setIdx])
 
   // Rest countdown ticker.
   useEffect(() => {
@@ -108,7 +115,7 @@ export default function Session({
   const tOpts = state.settings.custom
     ? { sets: state.settings.sets, reps: state.settings.reps }
     : undefined
-  const t = targetParts(item.exerciseId, state.progress, units, tOpts)
+  const t = targetParts(item.exerciseId, state.progress, state.profile, tOpts)
 
   const repMax = t ? Math.max((t.reps || 1) + 10, 20) : 20
   // Pre-fill reps with the target so a tap on "Complete set" logs the planned
@@ -132,7 +139,7 @@ export default function Session({
   const isLastExercise = a.cursor === total - 1
   const totalSets = t ? t.sets : (ex?.sets ?? 1)
   const isLastSet = setIdx >= totalSets - 1
-  const restTotal = ex ? restSeconds(ex) : 0
+  const restTotal = ex ? restSeconds(ex, state.profile) : 0
   const restLeft =
     restEndsAt != null ? Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000)) : 0
   const resting = restLeft > 0
@@ -168,7 +175,7 @@ export default function Session({
   function advanceNow(repsCount?: number) {
     setShowDemo(false)
     if (ex && !isLastSet) {
-      advanceSet(Date.now() + restSeconds(ex) * 1000)
+      advanceSet(Date.now() + restSeconds(ex, state.profile) * 1000)
       return
     }
     finishExercise(repsCount)
@@ -223,6 +230,22 @@ export default function Session({
     abandon()
     onQuit()
   }
+  function openSwap() {
+    clearPending()
+    setShowDemo(false)
+    setSwapOpen(true)
+  }
+  function closeSwap() {
+    setSwapOpen(false)
+    // Hand focus back to the control that opened the sheet.
+    requestAnimationFrame(() => swapBtnRef.current?.focus())
+  }
+  function pickSwap(toId: string, remember: boolean) {
+    swapExercise(toId, remember)
+    closeSwap()
+  }
+  const fromEx = item.from ? EXERCISES[item.from] : undefined
+  const sessNote = item.note ?? (fromEx ? `Instead of ${fromEx.name}` : null)
 
   return (
     <div className="frame push" ref={frameRef}>
@@ -239,9 +262,10 @@ export default function Session({
       </div>
 
       <div className="body">
-        <div className="sess-top" key={`top-${a.cursor}`}>
+        <div className="sess-top" key={`top-${a.cursor}-${item.exerciseId}`}>
           <span className="eyebrow">{a.dayLabel}</span>
           <h1 className="h1">{ex?.name}</h1>
+          {sessNote && <p className="sess-note">{sessNote}</p>}
           <div
             className="set-track"
             ref={trackRef}
@@ -299,7 +323,7 @@ export default function Session({
                       value={weightVal}
                       min={0}
                       max={weightMax}
-                      step={units === 'lb' ? 5 : 2.5}
+                      step={weightIncrement(units)}
                       suffix={t.units}
                       onChange={setWeight}
                     />
@@ -391,6 +415,14 @@ export default function Session({
               How to
             </button>
           )}
+          <button
+            className="btn ghost"
+            ref={swapBtnRef}
+            onClick={openSwap}
+            aria-haspopup="dialog"
+          >
+            Swap
+          </button>
         </div>
 
         <div className="spacer" />
@@ -411,6 +443,19 @@ export default function Session({
           </button>
         </div>
       </div>
+
+      {swapOpen && state.profile && (
+        <SwapSheet
+          exerciseId={item.exerciseId}
+          origin={item.from}
+          equipment={state.profile.equipment}
+          exclude={sameMovements(
+            a.plan.filter((_, i) => i !== a.cursor).map((p) => p.exerciseId)
+          )}
+          onPick={pickSwap}
+          onClose={closeSwap}
+        />
+      )}
 
       {pop > 0 && (
         <div

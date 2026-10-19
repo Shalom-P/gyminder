@@ -1,9 +1,10 @@
 import { EXERCISES } from '../data/exercises'
-import { PATTERNS, getCoaching } from '../data/coaching'
+import { effortCue, getCoaching, getTechnique } from '../data/coaching'
 import { targetParts } from '../engine/progression'
+import { alternativesFor } from '../engine/alternatives'
 import { useStore } from '../state/store'
 import ExerciseDemo from '../components/ExerciseDemo'
-import { XIcon } from '../components/icons'
+import { ChevronIcon, XIcon } from '../components/icons'
 
 function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -11,26 +12,29 @@ function cap(s: string) {
 
 export default function ExerciseDetail({
   exerciseId,
-  onBack
+  onBack,
+  onOpen
 }: {
   exerciseId: string
   onBack: () => void
+  /** Open another exercise's how-to (from the Alternatives list). */
+  onOpen: (exerciseId: string) => void
 }) {
   const { state } = useStore()
   const ex = EXERCISES[exerciseId]
   const info = getCoaching(exerciseId)
-  if (!ex || !info) return null
-  const p = PATTERNS[info.pattern]
+  const p = getTechnique(exerciseId)
+  if (!ex || !info || !p) return null
   const muscles = [cap(ex.primary), ...info.secondary]
   const tOpts = state.settings.custom
     ? { sets: state.settings.sets, reps: state.settings.reps }
     : undefined
-  const t = targetParts(
-    exerciseId,
-    state.progress,
-    state.profile?.units ?? 'kg',
-    tOpts
-  )
+  const t = targetParts(exerciseId, state.progress, state.profile, tOpts)
+  // What to do instead without this exercise's kit — doable with the user's
+  // equipment. (Swapping itself happens in the session, via Swap.)
+  const alts = alternativesFor(exerciseId, state.profile?.equipment ?? 'full', {
+    limit: 4
+  })
 
   return (
     <div className="frame push">
@@ -86,6 +90,25 @@ export default function ExerciseDetail({
           <p className="muted">{info.equipmentNote}</p>
         </div>
 
+        {alts.length > 0 && (
+          <div className="section">
+            <h3>Alternatives</h3>
+            <div className="list">
+              {alts.map((id) => (
+                <button key={id} className="row-link" onClick={() => onOpen(id)}>
+                  <span>
+                    {EXERCISES[id].name}
+                    <span className="sub">{EXERCISES[id].kit}</span>
+                  </span>
+                  <span className="chev">
+                    <ChevronIcon />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="section">
           <h3>Set up</h3>
           <ul>
@@ -131,6 +154,11 @@ export default function ExerciseDetail({
             <br />
             <strong>Breathing:</strong> {p.breathing}
           </p>
+        </div>
+
+        <div className="section">
+          <h3>Effort</h3>
+          <p className="muted">{effortCue(ex, state.profile?.goal)}</p>
         </div>
       </div>
     </div>
