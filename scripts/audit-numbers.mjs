@@ -46,8 +46,10 @@ const exercises = Object.values(EXERCISES)
 H('A. REST TIMES (seconds between sets)')
 console.log('Rule: compound 180s · accessory 120s · isolation 90s (Schoenfeld 2016; Singer 2024);')
 console.log('      "Get stronger" loaded work: compound 240s · accessory 150s (Grgic 2018; ACSM 2009).')
+console.log('      "Get shredded": compound 120s · accessory 90s · isolation 75s (Singer 2024 ≥60-90s floor; Helms 2015).')
 const REST_RULE = { compound: 180, accessory: 120, isolation: 90 }
 const REST_STRENGTH = { compound: 240, accessory: 150, isolation: 90 }
+const REST_SHRED = { compound: 120, accessory: 90, isolation: 75 }
 const byType = { compound: [], accessory: [], isolation: [] }
 for (const ex of exercises) byType[ex.type].push(ex)
 for (const t of ['compound', 'accessory', 'isolation']) {
@@ -57,6 +59,7 @@ for (const t of ['compound', 'accessory', 'isolation']) {
     ok(`rest ${ex.id} (${t})`, restSeconds(ex) === REST_RULE[t], `got ${restSeconds(ex)}s, expected ${REST_RULE[t]}s`)
     const want = unloaded(ex) ? REST_RULE[t] : REST_STRENGTH[t]
     ok(`rest ${ex.id} (${t}, strength)`, restSeconds(ex, profileOf({ goal: 'strength' })) === want)
+    ok(`rest ${ex.id} (${t}, shred)`, restSeconds(ex, profileOf({ goal: 'shred' })) === REST_SHRED[t])
   }
 }
 // mm:ss formatting (mirrors Session.mmss) at the three rest lengths
@@ -205,7 +208,7 @@ ok('pushup bodyweight true', targetParts('pushup', prog).bodyweight === true)
 ok('squat isTime false', targetParts('squat', prog).isTime === false)
 
 sub('Prescription by goal (intermediate) — squat / bench / deadlift / lat raise')
-for (const goal of ['muscle', 'strength', 'general']) {
+for (const goal of ['muscle', 'strength', 'general', 'shred']) {
   const row = ['squat', 'bb_bench', 'deadlift', 'lat_raise'].map((id) => {
     const r = prescribe(getExercise(id), profileOf({ goal }))
     return `${id} ${r.sets}×${r.repMin}-${r.repMax}`
@@ -220,6 +223,9 @@ for (const goal of ['muscle', 'strength', 'general']) {
   ok('strength squat 4×3-6', s.sets === 4 && s.repMin === 3 && s.repMax === 6)
   const g = prescribe(getExercise('bb_bench'), profileOf({ goal: 'general' }))
   ok('general bench 4×8-12', g.repMin === 8 && g.repMax === 12)
+  const sh = prescribe(getExercise('squat'), profileOf({ goal: 'shred' }))
+  const mu = prescribe(getExercise('squat'), profileOf({ goal: 'muscle' }))
+  ok('shred squat keeps hypertrophy sets × reps', sh.sets === mu.sets && sh.repMin === mu.repMin && sh.repMax === mu.repMax)
 }
 
 // ─────────────────────────────────────────────────────────────────────────

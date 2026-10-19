@@ -2702,6 +2702,47 @@ html.boot-hidden .list > * {
 .sess-demo .demo-photo {
   object-fit: cover;
 }
+/* One-tap Swap, floating on the demo's top-right corner: steps straight to
+   the closest alternative (no picker). Glass pill so it reads on photos. */
+.sess-demo {
+  position: relative;
+}
+.demo-swap {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: rgba(11, 11, 12, 0.62);
+  color: #f7f7f3;
+  font: var(--w-semi) var(--fs-sub) / 1 var(--font-ui);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease-pop), background var(--t-fast);
+}
+.demo-swap:hover {
+  background: rgba(11, 11, 12, 0.78);
+}
+.demo-swap:active {
+  transform: scale(0.94);
+}
+.demo-swap:active svg {
+  transform: rotate(180deg);
+}
+.demo-swap svg {
+  transition: transform 0.4s var(--ease-pop);
+}
+.demo-swap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .sess-stage .rest-ring {
   width: 240px;
   height: 240px;

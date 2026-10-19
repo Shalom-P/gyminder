@@ -230,6 +230,10 @@ const BEGINNER_MAX_SETS = 3
  *    (Schoenfeld et al. 2017), so the dataset's moderate ranges; beginners
  *    8-12 on compounds, the ACSM's novice range (Ratamess et al. 2009).
  *  - General fitness: 8-12 (ACSM novice / general-health guidance).
+ *  - Get shredded: a cut is a hypertrophy program run in a deficit, not light
+ *    "toning" work — keep the Build-muscle ranges (most reps 6-12 at 70-80%
+ *    1RM; Helms et al. 2015) so the loads that built the muscle keep it; strength
+ *    still progresses in a deficit (Murphy & Koehler 2022).
  */
 function repRange(ex: Exercise, profile: Profile): [number, number] {
   if (unloaded(ex) || ex.type === 'isolation') return [ex.repMin, ex.repMax]
@@ -239,6 +243,7 @@ function repRange(ex: Exercise, profile: Profile): [number, number] {
     return beginner ? [5, 8] : (ex.strength ?? [5, 8])
   }
   if (profile.goal === 'general') return [8, 12]
+  // 'muscle' and 'shred' share the hypertrophy ranges.
   return beginner && ex.type === 'compound' ? [8, 12] : [ex.repMin, ex.repMax]
 }
 
@@ -263,12 +268,15 @@ export function prescribe(ex: Exercise, profile?: Profile | null): Exercise {
  * ~90 s (Singer et al. 2024), so single-joint work rests 90 s without cost.
  * Strength-focused loaded work rests longer — trained lifters need >2 min for
  * maximal strength gains (Grgic et al. 2018; ACSM 2009: 3-5 min on heavy sets).
+ * "Get shredded" trims rest for a denser session but never below the ~60-90 s
+ * floor where hypertrophy holds (Singer et al. 2024; Helms et al. 2015: 1-3 min).
  */
 export function restSeconds(ex: Exercise, profile?: Profile | null): number {
   const strength = profile?.goal === 'strength' && !unloaded(ex)
-  if (ex.type === 'compound') return strength ? 240 : 180
-  if (ex.type === 'accessory') return strength ? 150 : 120
-  return 90
+  const shred = profile?.goal === 'shred'
+  if (ex.type === 'compound') return strength ? 240 : shred ? 120 : 180
+  if (ex.type === 'accessory') return strength ? 150 : shred ? 90 : 120
+  return shred ? 75 : 90
 }
 
 export function describeTarget(

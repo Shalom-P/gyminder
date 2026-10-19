@@ -877,6 +877,9 @@ export function effortCue(ex: Exercise, goal?: Goal): string {
   if (goal === 'strength') {
     return 'Leave 2-3 good reps in the tank on heavy sets — strength comes from crisp, heavy reps, not from grinding.'
   }
+  if (goal === 'shred') {
+    return 'Keep the weight heavy and stop with 1-3 good reps left. On a cut, holding your strength is what keeps the muscle.'
+  }
   return 'Stop each set with 1-3 good reps left. Grinding to failure adds fatigue, not muscle.'
 }
 

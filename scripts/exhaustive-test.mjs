@@ -72,7 +72,7 @@ const EQUIPS = ['full', 'dumbbell', 'bodyweight', 'none']
 const MUSCLES = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'biceps', 'triceps', 'core', 'calves']
 const MAJOR = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes']
 const EXPERIENCES = ['beginner', 'intermediate', 'advanced']
-const GOALS = ['muscle', 'strength', 'general']
+const GOALS = ['muscle', 'strength', 'general', 'shred']
 const DAYS_OPTIONS = [3, 4, 5, 6]
 const UNITS = ['kg', 'lb']
 
@@ -161,7 +161,7 @@ for (const equip of EQUIPS) {
 }
 
 // ---- 3. recommendSplitId across every profile --------------------------------
-section('recommendSplitId across all 288 profile combinations')
+section('recommendSplitId across all 384 profile combinations')
 let combosTested = 0
 for (const exp of EXPERIENCES) {
   for (const goal of GOALS) {
@@ -178,7 +178,7 @@ for (const exp of EXPERIENCES) {
     }
   }
 }
-check('288 combos tested (4 equip × 3 exp × 3 goal × 4 days × 2 units)', combosTested === 288, `tested ${combosTested}`)
+check('384 combos tested (4 equip × 3 exp × 4 goal × 4 days × 2 units)', combosTested === 384, `tested ${combosTested}`)
 for (const exp of EXPERIENCES) {
   for (const days of DAYS_OPTIONS) {
     for (const eq of EQUIPS) {
@@ -635,6 +635,10 @@ for (const ex of exerciseList) {
       if (goal === 'strength' && ex.type === 'compound' && exp !== 'beginner') check(`rx ${tag} heavier than hypertrophy`, rx.repMax < ex.repMax || ex.repMax <= 8)
       if (goal === 'general') check(`rx ${tag} general 8-12`, rx.repMin === 8 && rx.repMax === 12)
       if (goal === 'muscle' && exp !== 'beginner') check(`rx ${tag} hypertrophy = dataset`, rx.repMin === ex.repMin && rx.repMax === ex.repMax)
+      if (goal === 'shred') {
+        const m = prescribe(ex, { ...profileOf('full'), goal: 'muscle', experience: exp })
+        check(`rx ${tag} shred = build muscle`, rx.sets === m.sets && rx.repMin === m.repMin && rx.repMax === m.repMax)
+      }
       if (goal === 'muscle' && exp === 'beginner' && ex.type === 'compound') check(`rx ${tag} novice compound 8-12`, rx.repMin === 8 && rx.repMax === 12)
     }
   }
@@ -652,6 +656,9 @@ for (const ex of exerciseList) {
   if (unloadedEx) check(`rest ${ex.id} strength unloaded unchanged`, strength === muscle)
   else check(`rest ${ex.id} strength`, strength === { compound: 240, accessory: 150, isolation: 90 }[ex.type], String(strength))
   check(`rest ${ex.id} general = muscle`, restSeconds(ex, profileOf('full', { goal: 'general' })) === muscle)
+  const shred = restSeconds(ex, profileOf('full', { goal: 'shred' }))
+  check(`rest ${ex.id} shred by type`, shred === { compound: 120, accessory: 90, isolation: 75 }[ex.type], String(shred))
+  check(`rest ${ex.id} shred ≥60s and ≤ muscle`, shred >= 60 && shred <= muscle)
 }
 
 section('Targets: clamped into the range, weights on the wheel')

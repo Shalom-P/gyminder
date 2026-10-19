@@ -35,6 +35,7 @@ const STEPS: Step[] = [
     options: [
       { label: 'Build muscle', hint: 'Hypertrophy focus', value: 'muscle' },
       { label: 'Get stronger', hint: 'Strength focus', value: 'strength' },
+      { label: 'Get shredded', hint: 'Lose fat, keep muscle', value: 'shred' },
       { label: 'General fitness', hint: 'Stay fit and healthy', value: 'general' }
     ]
   },

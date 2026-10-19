@@ -5,8 +5,7 @@ import { XIcon } from './icons'
  * Progressive disclosure for the "three focus items" rule: every screen shows
  * only its title, its hero and its primary action; everything secondary lives
  * here, behind a "Details" tap, in a bottom sheet that rises over the screen.
- * Same dialog basics as SwapSheet — focus moves in once, Tab stays inside,
- * Escape closes.
+ * Dialog basics: focus moves in once, Tab stays inside, Escape closes.
  */
 export default function DetailsSheet({
   title,
