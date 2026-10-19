@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getActiveSplit } from '../data/splits'
@@ -9,8 +9,7 @@ import {
   relativeTime,
   upcomingDay
 } from '../engine/schedule'
-import { BrandMark } from '../components/icons'
-import { CountUp } from '../components/CountUp'
+import DetailsSheet, { DetailRow, DetailsButton } from '../components/DetailsSheet'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -57,6 +56,7 @@ export default function Home({
   onPick: () => void
 }) {
   const { state, start } = useStore()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const split = getActiveSplit(state)
   if (!split || !state.profile) return null
 
@@ -118,33 +118,20 @@ export default function Home({
   const estMin = Math.max(20, Math.round(estSecs / 60 / 5) * 5)
 
   const rel = relativeTime(state.lastWorkoutAt, now)
-  const headline = isReady ? 'Recovered and ready' : 'Recovery in progress'
 
   return (
     <div
       className={`frame tabbed${isReady ? '' : ' recovering'}`}
       style={isReady ? undefined : palette}
     >
-      <div className="top">
-        <span className="brand">
-          <BrandMark />
-          Gyminder
-        </span>
-        <span className={`pill${isReady ? ' ok' : ' rest'}`}>
-          <span className="dot" />
-          {isReady ? 'Ready to train' : 'Recovering'}
-        </span>
-      </div>
-
       <div className="body">
+        {/* Focus 1 — what's next. */}
         <div className="screen-head">
           <span className="eyebrow">{greeting()}</span>
-          <h1 className="h1">{headline}</h1>
-          <p className="muted">
-            {split.name} &middot; last trained {rel.toLowerCase()}
-          </p>
+          <h1 className="h1 display">{day?.label}</h1>
         </div>
 
+        {/* Focus 2 — the recovery ring, the only instrument on the screen. */}
         <div className="hero">
           <div className={`ring-wrap${isReady ? ' charged' : ''}`}>
             <svg viewBox="0 0 100 100">
@@ -187,49 +174,50 @@ export default function Home({
               </div>
             )}
             <div className="ring-center">
-              <span className="ring-label">Next session</span>
-              <span className="ring-big">{day?.label}</span>
+              <span className="ring-big">
+                {isReady ? 'Ready' : formatIn(ready.readyAt - now)}
+              </span>
               <span className={`ring-sub${isReady ? '' : ' rest'}`}>
-                {isReady
-                  ? 'Recovered'
-                  : `Ready in ${formatIn(ready.readyAt - now)}`}
+                {isReady ? `~${estMin} min` : 'until recovered'}
               </span>
             </div>
           </div>
-
-          <div className="home-meta">
-            <div className="hm-item">
-              <b>
-                <CountUp value={exCount} />
-              </b>
-              <span>exercises</span>
-            </div>
-            <span className="hm-sep" />
-            <div className="hm-item">
-              <b>
-                <CountUp value={setCount} />
-              </b>
-              <span>sets</span>
-            </div>
-            <span className="hm-sep" />
-            <div className="hm-item">
-              <b>
-                <CountUp value={estMin} />
-              </b>
-              <span>minutes</span>
-            </div>
-          </div>
         </div>
 
+        {/* Focus 3 — the one action. */}
         <div className="actions">
+          <div className="details-row">
+            <DetailsButton onClick={() => setDetailsOpen(true)} />
+          </div>
           <button className={`btn primary${isReady ? ' ok' : ''}`} onClick={go}>
-            Start {day?.label}
-          </button>
-          <button className="btn ghost" onClick={onPick}>
-            Choose another day
+            Start
           </button>
         </div>
       </div>
+
+      {detailsOpen && (
+        <DetailsSheet title="Session details" onClose={() => setDetailsOpen(false)}>
+          <div className="detail-list">
+            <DetailRow label="Exercises" value={exCount} />
+            <DetailRow label="Sets" value={setCount} />
+            <DetailRow label="Time" value={`~${estMin} min`} />
+            <DetailRow label="Program" value={split.name} />
+            <DetailRow label="Last trained" value={rel} />
+            {!isReady && <DetailRow label="Status" value="Recovering" />}
+          </div>
+          <div className="details-links">
+            <button
+              className="btn ghost"
+              onClick={() => {
+                setDetailsOpen(false)
+                onPick()
+              }}
+            >
+              Choose another day
+            </button>
+          </div>
+        </DetailsSheet>
+      )}
     </div>
   )
 }

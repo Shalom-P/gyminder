@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getCoaching } from '../data/coaching'
 import { restSeconds, targetParts, weightIncrement } from '../engine/progression'
-import { SetRoller, ValueRoller } from '../components/Rollers'
+import { ValueRoller } from '../components/Rollers'
 import ExerciseDemo from '../components/ExerciseDemo'
 import SwapSheet from '../components/SwapSheet'
+import DetailsSheet, { DetailRow, DetailsButton } from '../components/DetailsSheet'
 import { sameMovements } from '../engine/alternatives'
 import { CheckIcon, XIcon } from '../components/icons'
 
@@ -31,8 +32,7 @@ function DigitRoll({ d }: { d: number }) {
 }
 
 // When the real advance fires during the completion morph (full animation is
-// 0.56s — see .set-pop in styles.css): timed so the set-track segment locks in
-// just as the condensed dot lands on it. Kept brief (Apple HIG: quick +
+// 0.56s — see .set-pop in styles.css). Kept brief (Apple HIG: quick +
 // purposeful for frequent interactions); a second tap skips straight through.
 const POP_MS = 500
 const prefersReducedMotion = () =>
@@ -51,22 +51,16 @@ export default function Session({
   const { state, mark, abandon, advanceSet, setRest, swapExercise } = useStore()
   const [reps, setReps] = useState<number | null>(null)
   const [weight, setWeight] = useState<number | null>(null)
-  const [showDemo, setShowDemo] = useState(false)
-  // The demo mounts on first open (its photos are hot-linked — don't fetch for
-  // exercises never demoed) and stays mounted so hiding can cross-dissolve.
-  const [demoMounted, setDemoMounted] = useState(false)
+  // Three focus items on screen (name, looping demo, primary action); the
+  // dials, How-to, Swap and Skip live in the Details sheet.
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [swapOpen, setSwapOpen] = useState(false)
   const [, setTick] = useState(0)
-  // Completion-beat state: `pop` increments to replay the morph; `fly` is the
-  // measured vector from screen centre to the current set-track segment (where
-  // the badge banks itself); `pendingRef` holds the timer that fires the actual
-  // advance once the beat has played.
+  // Completion-beat state: `pop` increments to replay the morph; `pendingRef`
+  // holds the timer that fires the actual advance once the beat has played.
   const [pop, setPop] = useState(0)
-  const [fly, setFly] = useState<{ x: number; y: number } | null>(null)
   const pendingRef = useRef<number | null>(null)
-  const frameRef = useRef<HTMLDivElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const swapBtnRef = useRef<HTMLButtonElement>(null)
+  const detailsBtnRef = useRef<HTMLDivElement>(null)
   useEffect(
     () => () => {
       if (pendingRef.current != null) window.clearTimeout(pendingRef.current)
@@ -85,10 +79,9 @@ export default function Session({
   const setIdx = a?.setIdx ?? 0
   const restEndsAt = a?.restEndsAt ?? null
 
-  // Collapse the demo when the workout advances to the next exercise.
+  // Close the details when the workout advances to the next exercise.
   useEffect(() => {
-    setShowDemo(false)
-    setDemoMounted(false)
+    setDetailsOpen(false)
   }, [cursor, exId])
 
   // Reset the dialed reps/weight at the start of every set.
@@ -169,11 +162,7 @@ export default function Session({
     if (isLastExercise) onComplete()
   }
   // The real advance — mid-exercise: next set + start rest; last set: log it.
-  // Closes the demo first: the set is done, the stage belongs to what's next
-  // (and the rest layer may only ever bloom in over a closed demo — the CSS
-  // layer rules rely on it; see "demoing" in styles.css).
   function advanceNow(repsCount?: number) {
-    setShowDemo(false)
     if (ex && !isLastSet) {
       advanceSet(Date.now() + restSeconds(ex, state.profile) * 1000)
       return
@@ -192,8 +181,7 @@ export default function Session({
     if (isLastExercise) onComplete()
   }
   // Completing a set plays a morph confirmation — the check draws itself in,
-  // then condenses to a dot that banks into the current set-track segment, so
-  // the confirmation visibly becomes progress. It's interruptible (a second tap
+  // then condenses and drifts up into the set counter. It's interruptible (a second tap
   // jumps straight through), skipped under Reduce Motion, and skipped on the very
   // last set — the Complete screen is already that celebration (peak-end rule).
   function completeSet(repsCount?: number) {
@@ -205,20 +193,6 @@ export default function Session({
     if ((isLastSet && isLastExercise) || prefersReducedMotion()) {
       advanceNow(repsCount)
       return
-    }
-    // Aim the morph's exit at the current segment, measured at tap time; if
-    // either rect is unavailable the CSS falls back to a drift-up dissolve.
-    const frameEl = frameRef.current
-    const segEl = trackRef.current?.children[setIdx] as HTMLElement | undefined
-    if (frameEl && segEl) {
-      const f = frameEl.getBoundingClientRect()
-      const s = segEl.getBoundingClientRect()
-      setFly({
-        x: s.left + s.width / 2 - (f.left + f.width / 2),
-        y: s.top + s.height / 2 - (f.top + f.height / 2)
-      })
-    } else {
-      setFly(null)
     }
     setPop((n) => n + 1)
     pendingRef.current = window.setTimeout(() => {
@@ -232,13 +206,21 @@ export default function Session({
   }
   function openSwap() {
     clearPending()
-    setShowDemo(false)
+    setDetailsOpen(false)
     setSwapOpen(true)
   }
   function closeSwap() {
     setSwapOpen(false)
-    // Hand focus back to the control that opened the sheet.
-    requestAnimationFrame(() => swapBtnRef.current?.focus())
+    // Hand focus back to the Details toggle the swap was reached from.
+    requestAnimationFrame(() =>
+      detailsBtnRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    )
+  }
+  function closeDetails() {
+    setDetailsOpen(false)
+    requestAnimationFrame(() =>
+      detailsBtnRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    )
   }
   function pickSwap(toId: string, remember: boolean) {
     swapExercise(toId, remember)
@@ -247,98 +229,61 @@ export default function Session({
   const fromEx = item.from ? EXERCISES[item.from] : undefined
   const sessNote = item.note ?? (fromEx ? `Instead of ${fromEx.name}` : null)
 
+  const setLine = `Set ${setIdx + 1} of ${totalSets}`
+  const loadLine = !t
+    ? null
+    : t.isTime
+      ? `${repsVal}s hold`
+      : t.bodyweight
+        ? `× ${t.reps}`
+        : weightVal > 0
+          ? `${weightVal} ${t.units} × ${t.reps}`
+          : `${t.reps} reps`
+
   return (
-    <div className="frame push" ref={frameRef}>
+    <div className="frame push">
       <div className="session-head">
         <button className="icon-btn" onClick={quit} aria-label="Quit workout">
           <XIcon />
         </button>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${(a.cursor / total) * 100}%` }} />
-        </div>
-        <span className="chip">
-          {a.cursor + 1} / {total}
-        </span>
       </div>
 
       <div className="body">
+        {/* Focus 1 — what you're doing. The load line opens the dials. */}
         <div className="sess-top" key={`top-${a.cursor}-${item.exerciseId}`}>
-          <span className="eyebrow">{a.dayLabel}</span>
           <h1 className="h1">{ex?.name}</h1>
-          {sessNote && <p className="sess-note">{sessNote}</p>}
-          <div
-            className="set-track"
-            ref={trackRef}
-            role="img"
-            aria-label={`Set ${setIdx + 1} of ${totalSets}`}
+          <button
+            className="sess-sub"
+            onClick={() => setDetailsOpen(true)}
+            aria-label={`${resting ? 'Resting' : setLine}. Adjust weight and reps`}
           >
-            {Array.from({ length: totalSets }).map((_, i) => (
-              <span
-                key={i}
-                className={`seg ${i < setIdx ? 'done' : i === setIdx ? 'cur' : 'todo'}`}
-              />
-            ))}
-          </div>
+            {resting ? (
+              <>Rest · next is {setLine.toLowerCase()}</>
+            ) : (
+              <>
+                {setLine}
+                {loadLine && (
+                  <>
+                    {' · '}
+                    <b>{loadLine}</b>
+                  </>
+                )}
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Rollers, rest ring and the demo clip share one stacked grid cell and
-            cross-dissolve as `resting`/`demoing` toggle — stable height, no
-            layout jump, so the actions below never leave the screen. */}
-        <div
-          className={`swap-stage${resting ? ' resting' : ''}${showDemo ? ' demoing' : ''}`}
-        >
-          <div className="swap-layer target-layer" aria-hidden={resting || showDemo}>
-            <div className="target-card">
-              {t && (
-                <div className="target-stats" role="group">
-                  <SetRoller current={setIdx + 1} total={t.sets} />
-                  {/* Timed holds keep a duration wheel; rep work no longer shows
-                      a rep counter — "Complete set" logs the programmed target. */}
-                  {t.isTime && (
-                    <>
-                      <div className="tstat-div" aria-hidden="true" />
-                      <ValueRoller
-                        label="Hold"
-                        value={repsVal}
-                        min={0}
-                        max={repMax}
-                        step={1}
-                        suffix="sec"
-                        onChange={setReps}
-                      />
-                    </>
-                  )}
-                  <div className="tstat-div" aria-hidden="true" />
-                  {t.bodyweight ? (
-                    <div className="tstat">
-                      <span className="tstat-lbl">Weight</span>
-                      <div className="roller-static">
-                        <span className="tstat-bw">Body</span>
-                      </div>
-                      <span className="roller-total">&nbsp;</span>
-                    </div>
-                  ) : (
-                    <ValueRoller
-                      label="Weight"
-                      value={weightVal}
-                      min={0}
-                      max={weightMax}
-                      step={weightIncrement(units)}
-                      suffix={t.units}
-                      onChange={setWeight}
-                    />
-                  )}
-                </div>
-              )}
+        {/* Focus 2 — the looping photo demo, or the rest dial while resting.
+            Both stay mounted in one grid cell and cross-dissolve. */}
+        <div className={`swap-stage sess-stage${resting ? ' resting' : ''}`}>
+          <div className="swap-layer target-layer" aria-hidden={resting}>
+            <div className="sess-demo">
+              <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} clipOnly />
             </div>
           </div>
 
-          <div className="swap-layer rest-layer" aria-hidden={!resting || showDemo}>
-            <div
-              className={`rest-panel${
-                resting && restLeft <= 5 ? ' closing' : ''
-              }`}
-            >
+          <div className="swap-layer rest-layer" aria-hidden={!resting}>
+            <div className={`rest-panel${resting && restLeft <= 5 ? ' closing' : ''}`}>
               <div className="rest-ring">
                 <svg viewBox="0 0 100 100">
                   <circle
@@ -375,11 +320,7 @@ export default function Session({
                 </svg>
                 <span className="rest-eyebrow">Rest</span>
                 <div className="rest-center">
-                  <div
-                    className="rest-time"
-                    role="timer"
-                    aria-label={mmss(restLeft)}
-                  >
+                  <div className="rest-time" role="timer" aria-label={mmss(restLeft)}>
                     <DigitRoll d={Math.floor(restLeft / 60) % 10} />
                     <span className="rt-colon">:</span>
                     <DigitRoll d={Math.floor((restLeft % 60) / 10)} />
@@ -387,47 +328,17 @@ export default function Session({
                   </div>
                 </div>
               </div>
-              <span className="rest-next">
-                Up next · Set {setIdx + 1} of {totalSets}
-              </span>
             </div>
           </div>
-
-          <div className="swap-layer demo-layer" aria-hidden={!showDemo}>
-            {demoMounted && (
-              <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} clipOnly />
-            )}
-          </div>
-        </div>
-
-        <div className="sess-links">
-          <button
-            className="btn ghost"
-            onClick={() => {
-              setDemoMounted(true)
-              setShowDemo(!showDemo)
-            }}
-          >
-            {showDemo ? 'Hide' : 'Demo'}
-          </button>
-          {info && (
-            <button className="btn ghost" onClick={() => onShowHow(item.exerciseId)}>
-              How to
-            </button>
-          )}
-          <button
-            className="btn ghost"
-            ref={swapBtnRef}
-            onClick={openSwap}
-            aria-haspopup="dialog"
-          >
-            Swap
-          </button>
         </div>
 
         <div className="spacer" />
 
+        {/* Focus 3 — the one action. Details sits quietly above it. */}
         <div className="actions">
+          <div className="details-row" ref={detailsBtnRef}>
+            <DetailsButton onClick={() => setDetailsOpen(true)} />
+          </div>
           {/* One persistent CTA whose label cross-fades between roles, so the
               button keeps its press feel across the set <-> rest transition. */}
           <button
@@ -438,11 +349,58 @@ export default function Session({
               {resting ? 'Skip rest' : doneLabel}
             </span>
           </button>
-          <button className="btn ghost" onClick={skip}>
-            Skip exercise
-          </button>
         </div>
       </div>
+
+      {detailsOpen && (
+        <DetailsSheet title={`${ex?.name ?? 'Exercise'} details`} onClose={closeDetails}>
+          {t && (t.isTime || !t.bodyweight) && (
+            <div className="target-stats details-dials" role="group" aria-label="This set">
+              {t.isTime && (
+                <ValueRoller
+                  label="Hold"
+                  value={repsVal}
+                  min={0}
+                  max={repMax}
+                  step={1}
+                  suffix="sec"
+                  onChange={setReps}
+                />
+              )}
+              {t.isTime && !t.bodyweight && <div className="tstat-div" aria-hidden="true" />}
+              {!t.bodyweight && (
+                <ValueRoller
+                  label="Weight"
+                  value={weightVal}
+                  min={0}
+                  max={weightMax}
+                  step={weightIncrement(units)}
+                  suffix={t.units}
+                  onChange={setWeight}
+                />
+              )}
+            </div>
+          )}
+          <div className="detail-list">
+            <DetailRow label="Exercise" value={`${a.cursor + 1} of ${total}`} />
+            <DetailRow label="Day" value={a.dayLabel} />
+            {sessNote && <DetailRow label="Note" value={sessNote} />}
+          </div>
+          <div className="details-links">
+            {info && (
+              <button className="btn ghost" onClick={() => onShowHow(item.exerciseId)}>
+                How to
+              </button>
+            )}
+            <button className="btn ghost" onClick={openSwap} aria-haspopup="dialog">
+              Swap
+            </button>
+            <button className="btn ghost" onClick={skip}>
+              Skip
+            </button>
+          </div>
+        </DetailsSheet>
+      )}
 
       {swapOpen && state.profile && (
         <SwapSheet
@@ -458,16 +416,7 @@ export default function Session({
       )}
 
       {pop > 0 && (
-        <div
-          className="set-pop"
-          key={pop}
-          aria-hidden="true"
-          style={
-            fly
-              ? ({ '--fly-x': `${fly.x}px`, '--fly-y': `${fly.y}px` } as CSSProperties)
-              : undefined
-          }
-        >
+        <div className="set-pop" key={pop} aria-hidden="true">
           <span className="set-pop-badge">
             <CheckIcon />
           </span>
