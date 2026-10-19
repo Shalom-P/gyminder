@@ -5,9 +5,9 @@ import { getCoaching } from '../data/coaching'
 import { restSeconds, targetParts, weightIncrement } from '../engine/progression'
 import { ValueRoller } from '../components/Rollers'
 import ExerciseDemo from '../components/ExerciseDemo'
-import SwapSheet from '../components/SwapSheet'
 import DetailsSheet, { DetailRow, DetailsButton } from '../components/DetailsSheet'
-import { sameMovements } from '../engine/alternatives'
+import { alternativesFor, sameMovements } from '../engine/alternatives'
+import { canDo } from '../engine/equipment'
 import { CheckIcon, XIcon } from '../components/icons'
 
 function mmss(sec: number): string {
@@ -54,7 +54,6 @@ export default function Session({
   // Three focus items on screen (name, looping demo, primary action); the
   // dials, How-to, Swap and Skip live in the Details sheet.
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [swapOpen, setSwapOpen] = useState(false)
   const [, setTick] = useState(0)
   // Completion-beat state: `pop` increments to replay the morph; `pendingRef`
   // holds the timer that fires the actual advance once the beat has played.
@@ -204,27 +203,36 @@ export default function Session({
     abandon()
     onQuit()
   }
-  function openSwap() {
-    clearPending()
-    setDetailsOpen(false)
-    setSwapOpen(true)
-  }
-  function closeSwap() {
-    setSwapOpen(false)
-    // Hand focus back to the Details toggle the swap was reached from.
-    requestAnimationFrame(() =>
-      detailsBtnRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
-    )
-  }
   function closeDetails() {
     setDetailsOpen(false)
     requestAnimationFrame(() =>
       detailsBtnRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
     )
   }
-  function pickSwap(toId: string, remember: boolean) {
-    swapExercise(toId, remember)
-    closeSwap()
+  // One-tap swap, no picker: the slot's original plus its ranked alternatives
+  // (closest first, doable with the user's kit, never a movement already in
+  // today's session) form a ring, and each tap steps to the next lift in it —
+  // so the first tap lands on the closest match and repeated taps cycle back
+  // to the original. Swaps are for today only; nothing is remembered.
+  const slot = item.from && EXERCISES[item.from] ? item.from : item.exerciseId
+  const equipment = state.profile?.equipment ?? 'full'
+  const swapRing = [
+    ...(canDo(slot, equipment) ? [slot] : []),
+    ...alternativesFor(slot, equipment, {
+      exclude: sameMovements(
+        a.plan.filter((_, i) => i !== a.cursor).map((p) => p.exerciseId)
+      )
+    })
+  ]
+  if (!swapRing.includes(item.exerciseId)) swapRing.unshift(item.exerciseId)
+  const nextSwap =
+    swapRing.length > 1
+      ? swapRing[(swapRing.indexOf(item.exerciseId) + 1) % swapRing.length]
+      : null
+  function swapNow() {
+    if (!nextSwap) return
+    clearPending()
+    swapExercise(nextSwap, false)
   }
   const fromEx = item.from ? EXERCISES[item.from] : undefined
   const sessNote = item.note ?? (fromEx ? `Instead of ${fromEx.name}` : null)
@@ -279,6 +287,19 @@ export default function Session({
           <div className="swap-layer target-layer" aria-hidden={resting}>
             <div className="sess-demo">
               <ExerciseDemo exerciseId={item.exerciseId} label={ex?.name} clipOnly />
+              {nextSwap && (
+                <button
+                  className="demo-swap"
+                  onClick={swapNow}
+                  aria-label={`Swap to ${EXERCISES[nextSwap]?.name ?? 'another exercise'}`}
+                  tabIndex={resting ? -1 : 0}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" />
+                  </svg>
+                  Swap
+                </button>
+              )}
             </div>
           </div>
 
@@ -392,27 +413,11 @@ export default function Session({
                 How to
               </button>
             )}
-            <button className="btn ghost" onClick={openSwap} aria-haspopup="dialog">
-              Swap
-            </button>
             <button className="btn ghost" onClick={skip}>
               Skip
             </button>
           </div>
         </DetailsSheet>
-      )}
-
-      {swapOpen && state.profile && (
-        <SwapSheet
-          exerciseId={item.exerciseId}
-          origin={item.from}
-          equipment={state.profile.equipment}
-          exclude={sameMovements(
-            a.plan.filter((_, i) => i !== a.cursor).map((p) => p.exerciseId)
-          )}
-          onPick={pickSwap}
-          onClose={closeSwap}
-        />
       )}
 
       {pop > 0 && (
