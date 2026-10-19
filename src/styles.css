@@ -2554,3 +2554,185 @@ html.boot-hidden .list > * {
   transform: scale(0.92);
 }
 
+
+/* ============================ FOCUS LAYOUT ============================
+   The "three focus items" rule (2026-10): every main screen shows only its
+   title, one hero, and one primary action. Everything secondary waits behind
+   a quiet "Details" toggle above the CTA, in a bottom sheet (DetailsSheet). */
+.h1.display {
+  font-size: 46px;
+  letter-spacing: -0.045em;
+}
+.details-row {
+  display: flex;
+  justify-content: center;
+}
+.details-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-med) var(--fs-sub) / 1 var(--font-ui);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out);
+}
+.details-btn:hover {
+  color: var(--text);
+}
+.details-btn svg {
+  transition: transform var(--t-fast) var(--ease-pop);
+}
+.details-btn:active svg {
+  transform: translateY(-2px);
+}
+.details-btn:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+.details-sheet {
+  gap: 6px;
+  padding-top: 58px;
+}
+.sheet-grip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: 4px;
+  background: var(--line-strong);
+}
+.details-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+.detail-list {
+  display: flex;
+  flex-direction: column;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-body);
+  animation: detailIn 0.42s var(--ease) both;
+}
+.detail-row:nth-child(2) { animation-delay: 0.04s; }
+.detail-row:nth-child(3) { animation-delay: 0.08s; }
+.detail-row:nth-child(4) { animation-delay: 0.12s; }
+.detail-row:nth-child(5) { animation-delay: 0.16s; }
+.detail-row:nth-child(6) { animation-delay: 0.2s; }
+@keyframes detailIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.detail-v {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.details-links {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 6px;
+}
+.details-links .btn {
+  width: auto;
+}
+.details-dials {
+  justify-content: center;
+  padding: 18px 0 8px;
+}
+.details-signoff {
+  margin: 4px 0 6px;
+}
+
+/* Session: name + a tappable load line, then the always-on looping demo. */
+.sess-sub {
+  align-self: flex-start;
+  min-height: 44px;
+  margin: -4px 0 -10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-reg) var(--fs-headline) / 1.2 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+.sess-sub b {
+  color: var(--text);
+  font-weight: var(--w-semi);
+}
+.sess-sub:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+.sess-stage {
+  flex: 1;
+  min-height: 0;
+}
+.sess-stage > .swap-layer {
+  align-self: center;
+}
+.sess-demo .demo-stage {
+  height: 40vh;
+  min-height: 220px;
+  max-height: 380px;
+  border-radius: var(--r-xl);
+}
+.sess-demo .demo-tag {
+  display: none;
+}
+.sess-demo .demo-photo {
+  object-fit: cover;
+}
+.sess-stage .rest-ring {
+  width: 240px;
+  height: 240px;
+}
+
+/* Complete: one big number. */
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.hero-stat b {
+  font-size: 76px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+}
+.hero-stat b i {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 0.5em;
+  letter-spacing: -0.02em;
+}
+.hero-stat span {
+  color: var(--muted);
+  font-size: var(--fs-sub);
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-row {
+    animation: none;
+  }
+}

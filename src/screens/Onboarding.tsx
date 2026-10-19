@@ -114,7 +114,6 @@ export default function Onboarding() {
             Step {step + 1} of {STEPS.length}
           </span>
           <h1 className="h1">{current.title}</h1>
-          <p className="muted">{current.sub}</p>
         </div>
         <div className="spacer" />
         <div className="list reveal">

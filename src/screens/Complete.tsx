@@ -1,8 +1,9 @@
-import { type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { formatIn, nextReadyInfo } from '../engine/schedule'
 import { CheckIcon } from '../components/icons'
 import { CountUp } from '../components/CountUp'
+import DetailsSheet, { DetailRow, DetailsButton } from '../components/DetailsSheet'
 
 // Radial confetti fanning out behind the success badge. Deterministic (placed by
 // index, no randomness) so it's stable across re-renders; the motion is in CSS.
@@ -33,6 +34,7 @@ const WEEK = 7 * 24 * 60 * 60 * 1000
 
 export default function Complete({ onHome }: { onHome: () => void }) {
   const { state } = useStore()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const now = Date.now()
   const last = state.history[state.history.length - 1]
   const done = last ? last.entries.filter((e) => e.status === 'done').length : 0
@@ -44,73 +46,59 @@ export default function Complete({ onHome }: { onHome: () => void }) {
 
   return (
     <div className="frame push">
-      <div className="top">
-        <span className="brand center">Workout complete</span>
-        <span />
-      </div>
-
       <div className="body">
-        <div className="hero">
-          <div className="complete-celebrate">
-            <div className="success-wrap">
-              <div className="burst" aria-hidden="true">
-                {BURST.map((p, i) => (
-                  <i key={i} style={p.style} />
-                ))}
-              </div>
-              <div className="success">
-                <CheckIcon />
-              </div>
+        {/* Focus 1 — the celebration. */}
+        <div className="complete-celebrate">
+          <div className="success-wrap">
+            <div className="burst" aria-hidden="true">
+              {BURST.map((p, i) => (
+                <i key={i} style={p.style} />
+              ))}
             </div>
-            <div className="screen-head">
-              <h1 className="h1">{last?.dayLabel} done</h1>
-              <p className="muted">{signoff}</p>
+            <div className="success">
+              <CheckIcon />
             </div>
           </div>
+          <h1 className="h1 display">{last?.dayLabel} done</h1>
+        </div>
 
-          {/* Competence + consistency made tangible: what you just did, plus the
-              streak it's part of — the reward that makes the habit stick. */}
-          <div className="home-meta">
-            <div className="hm-item">
-              <b>
-                <CountUp value={done} dur={700} />
-                <i>/{total}</i>
-              </b>
-              <span>Exercises</span>
-            </div>
-            <span className="hm-sep" />
-            <div className="hm-item">
-              <b>{thisWeek}</b>
-              <span>This week</span>
-            </div>
-            <span className="hm-sep" />
-            <div className="hm-item">
-              <b>{allTime}</b>
-              <span>All-time</span>
-            </div>
+        {/* Focus 2 — one number that matters. */}
+        <div className="hero">
+          <div className="hero-stat">
+            <b>
+              <CountUp value={done} dur={700} />
+              <i>/{total}</i>
+            </b>
+            <span>exercises done</span>
           </div>
         </div>
 
-        {ready && (
-          <div className="card">
-            <span className="label">Next up</span>
-            <h2 className="h2">{ready.dayLabel}</h2>
-            <span className={`pill${ready.ready ? ' ok' : ''}`}>
-              <span className="dot" />
-              {ready.ready
-                ? 'Ready now'
-                : `Recommended in ${formatIn(ready.readyAt - now)}`}
-            </span>
-            <span className="muted">{ready.detail}</span>
-          </div>
-        )}
-
+        {/* Focus 3 — the one action. */}
         <div className="actions">
+          <div className="details-row">
+            <DetailsButton onClick={() => setDetailsOpen(true)} />
+          </div>
           <button className="btn primary" onClick={onHome}>
             Back home
           </button>
         </div>
       </div>
+
+      {detailsOpen && (
+        <DetailsSheet title="Workout summary" onClose={() => setDetailsOpen(false)}>
+          <p className="muted details-signoff">{signoff}</p>
+          <div className="detail-list">
+            <DetailRow label="This week" value={thisWeek} />
+            <DetailRow label="All-time" value={allTime} />
+            {ready && (
+              <DetailRow
+                label={`Next · ${ready.dayLabel}`}
+                value={ready.ready ? 'Ready now' : `in ${formatIn(ready.readyAt - now)}`}
+              />
+            )}
+          </div>
+        </DetailsSheet>
+      )}
     </div>
   )
 }
