@@ -65,7 +65,7 @@ export interface Split {
 }
 
 export type Experience = 'beginner' | 'intermediate' | 'advanced'
-export type Goal = 'muscle' | 'strength' | 'general'
+export type Goal = 'muscle' | 'strength' | 'general' | 'shred'
 export type WeightUnit = 'kg' | 'lb'
 export type ThemeMode = 'dark' | 'light'
 

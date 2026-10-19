@@ -1,13 +1,20 @@
 import { useStore } from '../state/store'
 import { getActiveSplit } from '../data/splits'
 import { EXERCISES } from '../data/exercises'
-import type { Equipment } from '../types'
+import type { Equipment, Goal } from '../types'
 
 const KIT: Record<Equipment, string> = {
   full: 'full gym',
   dumbbell: 'dumbbells',
   bodyweight: 'bodyweight + bar',
   none: 'no equipment'
+}
+
+const GOAL: Record<Goal, string> = {
+  muscle: 'build muscle',
+  strength: 'get stronger',
+  shred: 'get shredded',
+  general: 'general fitness'
 }
 
 function Stepper({
@@ -158,7 +165,7 @@ export default function Settings({
           <span className="label">Profile</span>
           <span className="muted" style={{ textTransform: 'capitalize' }}>
             {p
-              ? `${p.experience} · ${p.goal} · ${KIT[p.equipment] ?? p.equipment} · ${p.units ?? 'kg'}`
+              ? `${p.experience} · ${GOAL[p.goal] ?? p.goal} · ${KIT[p.equipment] ?? p.equipment} · ${p.units ?? 'kg'}`
               : '—'}
           </span>
         </div>
