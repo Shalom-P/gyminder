@@ -41,35 +41,45 @@ type Load = 'barbell' | 'dumbbell' | 'backbar' | 'none'
 const EXERCISE_ANIM: Record<string, { scene?: Scene; load?: Load }> = {
   // Chest
   db_bench: { load: 'dumbbell' },
+  machine_press: { load: 'none' },
   incline_bb: { load: 'barbell' },
   cable_fly: { scene: 'cable', load: 'none' },
   // Back
   db_row: { load: 'dumbbell' },
+  cs_db_row: { load: 'dumbbell' },
   inv_row: { load: 'none' },
+  table_row: { load: 'none' },
   cable_row: { scene: 'cable', load: 'none' },
-  face_pull: { scene: 'cable', load: 'none' },
   lat_pulldown: { scene: 'cable' },
   // Shoulders
   db_ohp: { load: 'dumbbell' },
   cable_lat_raise: { scene: 'cable', load: 'none' },
-  rear_delt_fly: { scene: 'cable', load: 'none' },
+  prone_yt_raise: { load: 'none' },
   // Quads / legs
   goblet_squat: { load: 'dumbbell' },
   bw_squat: { load: 'none' },
   leg_press: { scene: 'seat', load: 'none' },
   bw_lunge: { load: 'none' },
+  bw_bss: { load: 'none' },
+  step_up: { load: 'none' },
   // Hams / glutes
   db_rdl: { load: 'dumbbell' },
+  sl_rdl: { load: 'none' },
+  db_hip_thrust: { load: 'dumbbell' },
   hip_bridge: { scene: 'floor', load: 'none' },
+  sl_glute_bridge: { scene: 'floor', load: 'none' },
   // Biceps
   bb_curl: { load: 'barbell' },
   // Triceps
   pushdown: { scene: 'cable', load: 'none' },
+  cable_oh_ext: { scene: 'cable', load: 'none' },
   db_skullcrusher: { scene: 'bench', load: 'dumbbell' },
   overhead_ext: { load: 'dumbbell' },
   // Core
   cable_crunch: { scene: 'cable', load: 'none' },
   // Calves
+  db_calf_raise: { load: 'dumbbell' },
+  sl_calf_raise: { load: 'none' },
   bw_calf_raise: { load: 'none' }
 }
 
@@ -97,20 +107,24 @@ const P = (
 ): Pose => ({ root, torso, arm, elbow, hip, knee })
 
 /**
- * Body orientations: bodyRot is a static outer rotation applied around the
- * hip (100,150). For prone/lying patterns this lays the figure across the
- * bench or floor so the side-view actually reads as the right movement.
- * bodyDy slides the rotated figure onto the correct scene element.
+ * The standing figure faces RIGHT (its foot points +x). Rotations are
+ * clockwise-positive, so a limb at -80° points forward (right) and +80° points
+ * back (left); torso +° leans forward.
  *
- *   bodyRot = -90  → head points LEFT, feet point RIGHT, body horizontal.
- *   Inside a -90 rotation, joint rotations still work in the figure's local
- *   frame: arm angle -70° (originally "arm out front") becomes "arm extended
- *   away from the bench" — i.e. the press-up direction. So existing arm/leg
- *   poses still drive the rep correctly after rotation.
+ * Body orientations: bodyRot is a static outer rotation applied around the
+ * hip (100,150). For lying patterns this lays the figure across the bench or
+ * floor so the side-view actually reads as the right movement. bodyDy slides
+ * the rotated figure onto the correct scene element.
+ *
+ *   bodyRot = -90  → supine: head LEFT, chest up (bench, fly, crunch).
+ *   bodyRot = +73…85 → prone: head RIGHT, chest down (push-up, plank), tilted
+ *   just enough that hands/forearms and toes both meet the floor.
+ *   Joint rotations still work in the figure's local frame, so an arm at
+ *   −bodyRot hangs straight down to the floor.
  */
 const SPECS: Record<Pattern, Spec> = {
-  squat: { scene: 'floor', load: 'backbar', dur: 2.6, a: P(0, 8, 16, -14, 0, 0), b: P(34, 26, 16, -14, 80, -92) },
-  hinge: { scene: 'floor', load: 'barbell', dur: 2.6, a: P(0, 6, 4, 0, 0, 0), b: P(8, 66, 8, 0, 16, -20) },
+  squat: { scene: 'floor', load: 'backbar', dur: 2.6, a: P(0, 8, 52, 168, 0, 0), b: P(39, 35, 25, 168, -80, 95) },
+  hinge: { scene: 'floor', load: 'barbell', dur: 2.6, a: P(0, 6, -6, 0, 0, 0), b: P(6, 66, -66, 0, -10, 20) },
 
   // ---- Lying patterns: body rotated -90 so figure is on its back / prone
   bench: {
@@ -125,13 +139,15 @@ const SPECS: Record<Pattern, Spec> = {
     scene: 'bench', load: 'dumbbell', dur: 2.6, bodyRot: -90, bodyDy: 20,
     a: P(0, 0, -90, -60, 0, 0), b: P(0, 0, -90, -10, 0, 0)
   },
+  // Prone patterns lie face-down (bodyRot > 0: head right, chest to the floor),
+  // angled so the hands and toes both meet the floor.
   pushup: {
-    scene: 'floor', load: 'none', dur: 2.2, bodyRot: -90, bodyDy: 78,
-    a: P(0, 0, -90, -8, 0, 0), b: P(0, 0, -90, -70, 0, 0)
+    scene: 'floor', load: 'none', dur: 2.2, bodyRot: 73, bodyDy: 44,
+    a: P(0, 0, -73, 0, 0, 0), b: P(0, 10, -48, -68, 0, 0)
   },
   plank: {
-    scene: 'floor', load: 'none', dur: 3.6, bodyRot: -90, bodyDy: 78,
-    a: P(0, 0, -90, -88, 0, 0), b: P(2, 0, -90, -88, 0, 0)
+    scene: 'floor', load: 'none', dur: 3.6, bodyRot: 85, bodyDy: 61,
+    a: P(0, 0, -85, -90, 0, 0), b: P(1.5, 0, -85, -90, 0, 0)
   },
   crunch: {
     scene: 'floor', load: 'none', dur: 2.4, bodyRot: -90, bodyDy: 78,
@@ -144,18 +160,29 @@ const SPECS: Record<Pattern, Spec> = {
 
   // ---- Upright patterns ----
   ohp: { scene: 'floor', load: 'barbell', dur: 2.4, a: P(0, 4, -92, -70, 0, 0), b: P(0, 4, -172, -6, 0, 0) },
-  row: { scene: 'floor', load: 'barbell', dur: 2.4, a: P(0, 52, 26, -6, 8, -8), b: P(0, 52, -4, -104, 8, -8) },
-  pulldown: { scene: 'seat', load: 'none', dur: 2.4, a: P(0, -8, -150, -18, 82, -86), b: P(0, -8, -104, -66, 82, -86) },
+  row: { scene: 'floor', load: 'barbell', dur: 2.4, a: P(4, 52, -52, 0, -8, 16), b: P(4, 52, 18, -70, -8, 16) },
+  pulldown: { scene: 'seat', load: 'none', dur: 2.4, a: P(33, -8, -162, 0, -85, 90), b: P(33, -8, 18, -170, -85, 90) },
   pullup: { scene: 'pullbar', load: 'none', dur: 2.6, a: P(36, 2, -160, -12, 6, -8), b: P(2, 2, -160, -118, 6, -8) },
   lateral: { scene: 'floor', load: 'dumbbell', dur: 2.2, a: P(0, 4, 16, -8, 0, 0), b: P(0, 4, -84, -8, 0, 0) },
-  lunge: { scene: 'floor', load: 'dumbbell', dur: 2.6, a: P(0, 6, 20, -10, 8, -10), b: P(30, 8, 20, -10, 60, -104) },
+  lunge: { scene: 'floor', load: 'dumbbell', dur: 2.6, a: P(0, 6, -6, 0, 0, 0), b: P(42, 6, -6, 0, -85, 85) },
   curl: { scene: 'floor', load: 'dumbbell', dur: 2.2, a: P(0, 4, 8, -6, 0, 0), b: P(0, 4, 8, -138, 0, 0) },
   triceps: { scene: 'floor', load: 'none', dur: 2.0, a: P(0, 4, 14, -96, 0, 0), b: P(0, 4, 14, -6, 0, 0) },
   dip: { scene: 'dipbars', load: 'none', dur: 2.4, a: P(0, 12, -12, -8, 4, -6), b: P(26, 16, -12, -86, 4, -6) },
-  legext: { scene: 'seat', load: 'none', dur: 2.0, a: P(0, 2, 20, -10, 85, -92), b: P(0, 2, 20, -10, 85, -4) },
-  legcurl: { scene: 'floor', load: 'none', dur: 2.2, a: P(0, 4, 8, -6, 2, -4), b: P(0, 4, 8, -6, 2, -104) },
+  legext: { scene: 'seat', load: 'none', dur: 2.0, a: P(33, -6, 16, 0, -85, 90), b: P(33, -6, 16, 0, -85, 5) },
+  legcurl: { scene: 'seat', load: 'none', dur: 2.2, a: P(33, -6, 16, 0, -85, 5), b: P(33, -6, 16, 0, -85, 110) },
   legraise: { scene: 'pullbar', load: 'none', dur: 2.6, a: P(6, 2, -160, -10, 4, -8), b: P(6, 2, -160, -10, -78, -30) },
-  calf: { scene: 'floor', load: 'backbar', dur: 1.6, a: P(7, 4, 16, -10, 0, 0), b: P(-6, 4, 16, -10, 0, 2) }
+  calf: { scene: 'floor', load: 'backbar', dur: 1.6, a: P(7, 4, 16, -10, 0, 0), b: P(-6, 4, 16, -10, 0, 2) },
+  // Inverted V: hips high, hands and feet on the floor; the head lowers
+  // between the hands as the elbows bend back.
+  pike: { scene: 'floor', load: 'none', dur: 2.4, a: P(-2, 117, -117, 0, 22, 0), b: P(-2, 140, -118, -86, 22, 0) },
+  // Arms reach to the cable, then fold the rope back to the face.
+  facepull: { scene: 'cable', load: 'none', dur: 2.4, a: P(0, -4, -86, 0, 0, 0), b: P(0, -4, -96, -149, 0, 0) },
+  // Hinged torso, arms raising from hanging.
+  reardelt: { scene: 'floor', load: 'dumbbell', dur: 2.4, a: P(4, 75, -75, -10, -8, 16), b: P(4, 75, -10, -15, -8, 16) },
+  // Kneeling, ankles anchored: lean forward from the knees as one line.
+  nordic: { scene: 'floor', load: 'none', dur: 3.2, a: P(42, 0, -30, -40, 0, 110), b: P(58, 50, -80, -10, 50, 60) },
+  // Supine bridge on the floor, heels sliding in and out.
+  slidecurl: { scene: 'floor', load: 'none', dur: 2.4, bodyRot: -90, bodyDy: 67, a: P(0, -20, 20, 0, 14, 0), b: P(0, -20, 20, 0, -20, 82) }
 }
 
 function jointStyle(

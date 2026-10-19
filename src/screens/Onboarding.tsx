@@ -21,7 +21,7 @@ const STEPS: Step[] = [
   {
     key: 'experience',
     title: 'How experienced are you?',
-    sub: 'This tunes your starting volume and progression.',
+    sub: 'Sets your starting volume and the plan we recommend.',
     options: [
       { label: 'Beginner', hint: 'New or returning to lifting', value: 'beginner' },
       { label: 'Intermediate', hint: 'Training consistently 6+ months', value: 'intermediate' },
@@ -31,7 +31,7 @@ const STEPS: Step[] = [
   {
     key: 'goal',
     title: "What's your main goal?",
-    sub: 'Shapes exercise selection and rep targets.',
+    sub: 'Sets your rep ranges and rest times.',
     options: [
       { label: 'Build muscle', hint: 'Hypertrophy focus', value: 'muscle' },
       { label: 'Get stronger', hint: 'Strength focus', value: 'strength' },
@@ -43,20 +43,21 @@ const STEPS: Step[] = [
     title: 'Days per week?',
     sub: 'We use this to recommend a training mode.',
     options: [
-      { label: '3 days', hint: 'Full body or PPL', value: 3 },
+      { label: '3 days', hint: 'Full body', value: 3 },
       { label: '4 days', hint: 'Upper / Lower', value: 4 },
-      { label: '5 days', hint: 'Hybrid or bro split', value: 5 },
-      { label: '6 days', hint: 'High-volume PPL', value: 6 }
+      { label: '5 days', hint: 'Push / pull / legs + upper / lower', value: 5 },
+      { label: '6 days', hint: 'Push / pull / legs, twice', value: 6 }
     ]
   },
   {
     key: 'equipment',
     title: 'What equipment do you have?',
-    sub: 'Exercises auto-swap to fit what you have.',
+    sub: 'Exercises auto-swap to fit. Missing something? Tap Swap mid-workout.',
     options: [
       { label: 'Full gym', hint: 'Barbells, machines, cables', value: 'full' },
-      { label: 'Dumbbells', hint: 'Dumbbells and a bench', value: 'dumbbell' },
-      { label: 'Bodyweight', hint: 'No equipment', value: 'bodyweight' }
+      { label: 'Dumbbells', hint: 'Dumbbells and a bench; a pull-up bar helps', value: 'dumbbell' },
+      { label: 'Bodyweight + bar', hint: 'A pull-up bar, dip bars or rings', value: 'bodyweight' },
+      { label: 'No equipment', hint: 'Just you and a chair; back work is limited', value: 'none' }
     ]
   },
   {

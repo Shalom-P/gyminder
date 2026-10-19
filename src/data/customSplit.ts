@@ -1,7 +1,9 @@
 import type { Equipment, Muscle, Split, SplitDay } from '../types'
 import { CUSTOM_SPLIT_ID } from '../types'
 import { EXERCISES } from './exercises'
+import { getCoaching, type Pattern } from './coaching'
 import { resolveForEquipment } from '../engine/equipment'
+import { movementOf } from '../engine/alternatives'
 
 /** A day "focus" the user can pick when building their own schedule. */
 export interface Focus {
@@ -41,40 +43,112 @@ const TYPE_W: Record<string, number> = {
   isolation: 2
 }
 
+/** Kit closest to what the user has first: a full gym gets the machine leg
+ *  curl before a Nordic, a dumbbell user the dumbbell row before a table row. */
+const KIT_W: Record<Equipment, number> = {
+  full: 0,
+  dumbbell: 1,
+  bodyweight: 2,
+  none: 3
+}
+
+/** Movement families: a day takes one of each before doubling up. */
+const FAMILY: Partial<Record<Pattern, string>> = {
+  bench: 'horizontal press',
+  pushup: 'horizontal press',
+  ohp: 'vertical press',
+  pike: 'vertical press',
+  pulldown: 'vertical pull',
+  pullup: 'vertical pull',
+  facepull: 'rear delt',
+  reardelt: 'rear delt',
+  legcurl: 'knee flexion',
+  nordic: 'knee flexion',
+  slidecurl: 'knee flexion'
+}
+
+/** Heavy, fatiguing families never repeat in a session (no deadlift + RDL). */
+const ONE_PER_DAY = new Set(['hinge', 'squat'])
+
+function familyOf(id: string): string {
+  const p = getCoaching(id)?.pattern
+  return p ? FAMILY[p] ?? p : id
+}
+
+/** Arms already work hard in every press and pull, so their own slot goes to
+ *  direct isolation work first (curls beat rows for the biceps — Mannarino
+ *  et al. 2021). Other muscles lead with their big compound lifts. */
+const ISOLATION_FIRST = new Set<Muscle>(['biceps', 'triceps'])
+
+/** Direct sets per muscle in one session: extra growth seems to flatten out
+ *  around here (Remmert et al. 2025 — a preprint, so treat it as soft). */
+const SESSION_SET_CAP = 10
+
 /**
- * Pick a balanced set of exercises for a focus: walk its muscles in order,
- * taking the best (compound-first) equipment-doable lift for each, then a
- * second pass for volume, capped to a sensible session length.
+ * Pick a balanced set of exercises for a focus. Round-robin over its muscles,
+ * each turn taking that muscle's best candidate — resolved to the user's
+ * equipment, kit closest to theirs first, then compounds first (isolation
+ * first for arms) — that adds a movement family the day doesn't have yet.
+ * Only if that leaves the day short (under four exercises, or a one- or
+ * two-muscle focus) does a family repeat, at most twice — so a leg day gets a
+ * squat, a hinge, a hip thrust and a leg curl rather than three hinges. No
+ * muscle takes more than ~10 direct sets in the session.
  */
 function pickExercises(
   muscles: Muscle[],
   equipment: Equipment,
   max: number
 ): string[] {
-  const byMuscle = (m: Muscle) =>
-    Object.values(EXERCISES)
-      .filter((e) => e.primary === m)
-      .sort((a, b) => TYPE_W[a.type] - TYPE_W[b.type])
-
-  const chosen: string[] = []
-  const seen = new Set<string>()
-  const take = (m: Muscle, n: number) => {
-    let added = 0
-    for (const e of byMuscle(m)) {
-      if (chosen.length >= max || added >= n) break
+  const candidates = (m: Muscle): string[] => {
+    const typeW = (t: string) =>
+      ISOLATION_FIRST.has(m) ? 2 - TYPE_W[t] : TYPE_W[t]
+    const resolved = new Set<string>()
+    for (const e of Object.values(EXERCISES)) {
+      if (e.primary !== m) continue
       const rid = resolveForEquipment(e.id, equipment)
-      if (rid && !seen.has(rid)) {
-        seen.add(rid)
-        chosen.push(rid)
-        added++
-      }
+      if (rid) resolved.add(rid)
     }
+    return [...resolved].sort((a, b) => {
+      const ea = EXERCISES[a]
+      const eb = EXERCISES[b]
+      return (
+        KIT_W[ea.equipment] - KIT_W[eb.equipment] || typeW(ea.type) - typeW(eb.type)
+      )
+    })
   }
 
-  for (const m of muscles) take(m, 1) // one per muscle first
-  for (const m of muscles) {
-    if (chosen.length >= max) break
-    take(m, 1) // a second pass for volume
+  const chosen: string[] = []
+  const moves = new Set<string>()
+  const families = new Map<string, number>()
+  const sets = new Map<Muscle, number>()
+  const tryTake = (m: Muscle, perFamily: number): boolean => {
+    if ((sets.get(m) ?? 0) >= SESSION_SET_CAP) return false
+    for (const id of candidates(m)) {
+      if (moves.has(movementOf(id))) continue
+      const fam = familyOf(id)
+      const limit = ONE_PER_DAY.has(fam) ? 1 : perFamily
+      if ((families.get(fam) ?? 0) >= limit) continue
+      chosen.push(id)
+      moves.add(movementOf(id))
+      families.set(fam, (families.get(fam) ?? 0) + 1)
+      sets.set(m, (sets.get(m) ?? 0) + EXERCISES[id].sets)
+      return true
+    }
+    return false
+  }
+
+  // Distinct families first; then let families repeat once if the day is short.
+  const minDay = Math.min(max, 4)
+  for (const perFamily of [1, 2]) {
+    const cap = perFamily === 1 || muscles.length <= 2 ? max : minDay
+    let progressed = true
+    while (chosen.length < cap && progressed) {
+      progressed = false
+      for (const m of muscles) {
+        if (chosen.length >= cap) break
+        if (tryTake(m, perFamily)) progressed = true
+      }
+    }
   }
   return chosen
 }

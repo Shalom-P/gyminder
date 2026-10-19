@@ -1,50 +1,103 @@
-import type { AppState, Muscle, SplitDay } from '../types'
+import type { AppState, HistoryRecord, Muscle, SplitDay } from '../types'
 import { EXERCISES } from '../data/exercises'
 import { getActiveSplit } from '../data/splits'
+import { prescribe } from './progression'
 
 const HOUR = 3600_000
 const VERY_DUE = Number.MAX_SAFE_INTEGER
 
-/** Recovery windows (hours) from current training-science consensus. */
-const RECOVERY: Record<Muscle, number> = {
-  chest: 60,
-  back: 60,
-  quads: 60,
-  hamstrings: 60,
-  glutes: 60,
-  shoulders: 48,
-  biceps: 36,
-  triceps: 36,
-  core: 24,
-  calves: 24
+/**
+ * Hours until a muscle is ready again, from how hard the last session hit it —
+ * not from its size. Performance after resistance training typically returns
+ * within ~48 h, and recovery tracks volume and proximity to failure rather
+ * than muscle group: squat, bench and deadlift recover alike (Belcher et al.
+ * 2019), curls recovered slower than rows (Soares et al. 2015), and training
+ * to failure adds 24-48 h (Morán-Navarro et al. 2017). So: a hard session
+ * (≥10 fractional sets) gets 72 h, a light one (≤4) 24 h, anything else 48 h.
+ * It is an estimate, and shown as one.
+ */
+export function recoveryHours(sets: number): number {
+  if (sets >= 10) return 72
+  if (sets <= 4) return 24
+  return 48
 }
 
 /** Never run two sessions inside this window, even if muscles differ. */
 const MIN_GAP_H = 20
 
+/**
+ * Fractional sets one session put on a muscle: every set of an exercise that
+ * targets it counts 1, every set where it's a synergist counts 0.5 (the model
+ * that best fit the volume data in Pelland et al. 2025). Entries saved before
+ * sets were logged fall back to the lifter's prescription.
+ */
+export function setsOn(
+  state: AppState,
+  rec: HistoryRecord,
+  muscle: Muscle
+): number {
+  let total = 0
+  for (const e of rec.entries) {
+    if (e.status !== 'done') continue
+    const ex = EXERCISES[e.exerciseId]
+    if (!ex) continue
+    const share = ex.primary === muscle ? 1 : ex.also.includes(muscle) ? 0.5 : 0
+    if (share) total += share * (e.sets ?? prescribe(ex, state.profile).sets)
+  }
+  return total
+}
+
 function cap(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function musclesOf(day: SplitDay): Muscle[] {
-  const set = new Set<Muscle>()
+/**
+ * The muscles a day trains substantially — the ones whose recovery decides
+ * when it's ready: the target of any compound lift, plus any muscle given ≥4
+ * direct sets. A 3-set finisher (face pulls on a pull day, curls, calf raises)
+ * doesn't hold a whole session back: light work is fine on a muscle that is
+ * still recovering (≤4 sets is the "light" band in recoveryHours). A day of
+ * only light work falls back to all of its muscles.
+ */
+function musclesOf(state: AppState, day: SplitDay): Muscle[] {
+  const direct = new Map<Muscle, number>()
+  const gating = new Set<Muscle>()
   for (const id of day.exercises) {
     const ex = EXERCISES[id]
-    if (ex) set.add(ex.primary)
+    if (!ex) continue
+    const sets = (direct.get(ex.primary) ?? 0) + prescribe(ex, state.profile).sets
+    direct.set(ex.primary, sets)
+    if (ex.type === 'compound' || sets >= 4) gating.add(ex.primary)
   }
-  return [...set]
+  return gating.size ? [...gating] : [...direct.keys()]
 }
 
-/** Most recent time this muscle was actually trained — across ALL days. */
-function lastTrained(state: AppState, muscle: Muscle): number | null {
-  let latest: number | null = null
+/**
+ * When this muscle was last trained and when it's ready again — across ALL
+ * days, so a hard session two days ago can outlast a light one yesterday.
+ * Under one fractional set (a brief synergist role) doesn't count at all.
+ * `lastDirect` is the last session that targeted it directly — what "how
+ * overdue is this day" compares — so synergist work (an RDL's back sets on leg
+ * day) delays readiness without making a day look recently trained.
+ */
+function muscleStatus(
+  state: AppState,
+  muscle: Muscle
+): { last: number | null; lastDirect: number | null; readyAt: number } {
+  let last: number | null = null
+  let lastDirect: number | null = null
+  let readyAt = 0
   for (const rec of state.history) {
-    const hit = rec.entries.some(
+    const sets = setsOn(state, rec, muscle)
+    if (sets < 1) continue
+    if (last === null || rec.at > last) last = rec.at
+    const direct = rec.entries.some(
       (e) => e.status === 'done' && EXERCISES[e.exerciseId]?.primary === muscle
     )
-    if (hit && (latest === null || rec.at > latest)) latest = rec.at
+    if (direct && (lastDirect === null || rec.at > lastDirect)) lastDirect = rec.at
+    readyAt = Math.max(readyAt, rec.at + recoveryHours(sets) * HOUR)
   }
-  return latest
+  return { last, lastDirect, readyAt }
 }
 
 interface DayScore {
@@ -65,15 +118,14 @@ function scoreDay(state: AppState, day: SplitDay, now: number): DayScore {
   const recoveredMuscles: Muscle[] = []
   const recovering: Array<{ muscle: Muscle; readyAt: number }> = []
 
-  for (const m of musclesOf(day)) {
-    const lt = lastTrained(state, m)
-    if (lt == null) {
+  for (const m of musclesOf(state, day)) {
+    const { last, lastDirect, readyAt: when } = muscleStatus(state, m)
+    if (last == null) {
       untrained = true
       recoveredMuscles.push(m)
       continue
     }
-    mostRecent = Math.max(mostRecent, lt)
-    const when = lt + RECOVERY[m] * HOUR
+    mostRecent = Math.max(mostRecent, lastDirect ?? last)
     readyAt = Math.max(readyAt, when)
     if (when <= now) recoveredMuscles.push(m)
     else recovering.push({ muscle: m, readyAt: when })

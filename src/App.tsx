@@ -169,11 +169,11 @@ export default function App() {
       ? { sets: state.settings.sets, reps: state.settings.reps }
       : undefined
     const t = item
-      ? targetParts(item.exerciseId, state.progress, state.profile?.units ?? 'kg', tOpts)
+      ? targetParts(item.exerciseId, state.progress, state.profile, tOpts)
       : null
     const setTotal = t ? t.sets : ex?.sets ?? 1
     const resting = a.restEndsAt != null && a.restEndsAt > Date.now()
-    const restMs = ex ? restSeconds(ex) * 1000 : 0
+    const restMs = ex ? restSeconds(ex, state.profile) * 1000 : 0
     const startedAt = resting && a.restEndsAt != null ? a.restEndsAt - restMs : null
     const base = {
       setIndex: (a.setIdx ?? 0) + 1,
@@ -240,6 +240,7 @@ export default function App() {
       <ExerciseDetail
         exerciseId={detailId}
         onBack={() => setView(detailReturn)}
+        onOpen={setDetailId}
       />
     )
   } else if (view === 'pick') {

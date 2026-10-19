@@ -18,12 +18,18 @@ import type {
 import { CUSTOM_SPLIT_ID } from '../types'
 import { EXERCISES, getExercise } from '../data/exercises'
 import { getActiveSplit } from '../data/splits'
-import { applyResult, buildPlan, initProgress } from '../engine/progression'
+import {
+  applyResult,
+  buildPlan,
+  initProgress,
+  prescribe
+} from '../engine/progression'
+import { rememberSwap } from '../engine/alternatives'
 import { upcomingDay } from '../engine/schedule'
 
 const STORAGE_KEY = 'gymapp.v1'
 
-const EMPTY: AppState = {
+export const EMPTY: AppState = {
   profile: null,
   currentSplitId: null,
   rotationIndex: 0,
@@ -33,7 +39,8 @@ const EMPTY: AppState = {
   active: null,
   customSplit: null,
   settings: { custom: false, sets: 3, reps: 8 },
-  theme: 'dark'
+  theme: 'dark',
+  swaps: {}
 }
 
 function load(): AppState {
@@ -46,7 +53,7 @@ function load(): AppState {
   }
 }
 
-type Action =
+export type Action =
   | { type: 'onboard'; profile: Profile }
   | { type: 'setSplit'; id: string }
   | { type: 'setTargets'; patch: Partial<Settings> }
@@ -57,6 +64,8 @@ type Action =
   | { type: 'mark'; status: 'done' | 'skip'; reps?: number; weight?: number }
   | { type: 'advanceSet'; restEndsAt: number }
   | { type: 'setRest'; restEndsAt: number | null }
+  | { type: 'swapExercise'; toId: string; remember: boolean }
+  | { type: 'clearSwap'; fromId: string }
   | { type: 'abandon' }
   | { type: 'resetAll' }
   | { type: 'redoSetup' }
@@ -66,10 +75,11 @@ function finalize(state: AppState, entries: SessionEntry[]): AppState {
   if (!a) return state
   const progress = { ...state.progress }
   for (const e of entries) {
-    const ex = EXERCISES[e.exerciseId]
-    if (!ex) continue // tolerate ids removed by a later data update
+    const base = EXERCISES[e.exerciseId]
+    if (!base) continue // tolerate ids removed by a later data update
+    const ex = prescribe(base, state.profile)
     const prev = progress[e.exerciseId] ?? initProgress(ex)
-    progress[e.exerciseId] = applyResult(prev, ex, e)
+    progress[e.exerciseId] = applyResult(prev, ex, e, state.profile?.units)
   }
   const split = getActiveSplit(state)
   const dayCount = split && split.days.length ? split.days.length : 1
@@ -96,7 +106,12 @@ function finalize(state: AppState, entries: SessionEntry[]): AppState {
 /** Build the active session for a specific day (used by start & startDay). */
 function beginSession(state: AppState, day: SplitDay): AppState {
   if (!state.profile || !state.currentSplitId) return state
-  const { items, resetMisses } = buildPlan(day, state.profile, state.progress)
+  const { items, resetMisses } = buildPlan(
+    day,
+    state.profile,
+    state.progress,
+    state.swaps
+  )
   if (!items.length) return state
   const progress = { ...state.progress }
   for (const id of resetMisses) {
@@ -119,7 +134,8 @@ function beginSession(state: AppState, day: SplitDay): AppState {
   }
 }
 
-function reducer(state: AppState, action: Action): AppState {
+/** Exported for the engine test scripts; components go through useStore(). */
+export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'onboard':
       return { ...state, profile: action.profile }
@@ -171,6 +187,9 @@ function reducer(state: AppState, action: Action): AppState {
       if (action.status === 'done') {
         if (typeof action.reps === 'number') entry.reps = action.reps
         if (typeof action.weight === 'number') entry.weight = action.weight
+        // Logged on the last set, so the set index gives the sets performed —
+        // the volume the recovery estimate reads.
+        entry.sets = (a.setIdx ?? 0) + 1
       }
       const entries = [...a.entries, entry]
       const advanced: AppState = {
@@ -199,6 +218,45 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, active: { ...a, restEndsAt: action.restEndsAt } }
     }
 
+    case 'swapExercise': {
+      // Replace the current exercise (the user lacks the kit, or the station is
+      // taken). Keyed by what the slot originally held, so a swap of a swap —
+      // or of a skip-swap — still reads "instead of <original>, do <this>".
+      // Picking the original back restores it. The new lift starts at set 1.
+      const a = state.active
+      if (!a) return state
+      const item = a.plan[a.cursor]
+      if (!item || !EXERCISES[action.toId] || action.toId === item.exerciseId)
+        return state
+      const origin = item.from ?? item.exerciseId
+      const back = action.toId === origin
+      const plan = a.plan.slice()
+      plan[a.cursor] = back
+        ? { exerciseId: origin }
+        : { exerciseId: action.toId, from: origin }
+      let swaps = state.swaps
+      if (action.remember) {
+        if (back) {
+          swaps = { ...swaps }
+          delete swaps[origin]
+        } else {
+          swaps = rememberSwap(swaps, origin, action.toId)
+        }
+      }
+      return {
+        ...state,
+        swaps,
+        active: { ...a, plan, setIdx: 0, restEndsAt: null }
+      }
+    }
+
+    case 'clearSwap': {
+      if (!(action.fromId in state.swaps)) return state
+      const swaps = { ...state.swaps }
+      delete swaps[action.fromId]
+      return { ...state, swaps }
+    }
+
     case 'abandon':
       return { ...state, active: null }
 
@@ -225,6 +283,8 @@ interface Store {
   mark: (status: 'done' | 'skip', reps?: number, weight?: number) => void
   advanceSet: (restEndsAt: number) => void
   setRest: (restEndsAt: number | null) => void
+  swapExercise: (toId: string, remember: boolean) => void
+  clearSwap: (fromId: string) => void
   abandon: () => void
   resetAll: () => void
   redoSetup: () => void
@@ -257,6 +317,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'mark', status, reps, weight }),
       advanceSet: (restEndsAt) => dispatch({ type: 'advanceSet', restEndsAt }),
       setRest: (restEndsAt) => dispatch({ type: 'setRest', restEndsAt }),
+      swapExercise: (toId, remember) =>
+        dispatch({ type: 'swapExercise', toId, remember }),
+      clearSwap: (fromId) => dispatch({ type: 'clearSwap', fromId }),
       abandon: () => dispatch({ type: 'abandon' }),
       resetAll: () => dispatch({ type: 'resetAll' }),
       redoSetup: () => dispatch({ type: 'redoSetup' })

@@ -2,7 +2,7 @@ import { type CSSProperties } from 'react'
 import { useStore } from '../state/store'
 import { EXERCISES } from '../data/exercises'
 import { getActiveSplit } from '../data/splits'
-import { buildPlan } from '../engine/progression'
+import { buildPlan, restSeconds, targetParts } from '../engine/progression'
 import {
   formatIn,
   nextReadyInfo,
@@ -100,18 +100,20 @@ export default function Home({
   }
 
   // Session preview — count, sets and a rough time estimate for the next day.
-  const items = day ? buildPlan(day, state.profile, state.progress).items : []
+  const items = day
+    ? buildPlan(day, state.profile, state.progress, state.swaps).items
+    : []
   const exCount = items.length
-  const setCount = items.reduce((t, it) => {
-    const ex = EXERCISES[it.exerciseId]
-    return t + (ex?.sets ?? 3)
-  }, 0)
+  const tOpts = state.settings.custom
+    ? { sets: state.settings.sets, reps: state.settings.reps }
+    : undefined
+  const setsOf = (id: string) =>
+    targetParts(id, state.progress, state.profile, tOpts)?.sets ?? 3
+  const setCount = items.reduce((t, it) => t + setsOf(it.exerciseId), 0)
   const estSecs = items.reduce((t, it) => {
     const ex = EXERCISES[it.exerciseId]
     if (!ex) return t
-    const sets = ex.sets || 3
-    const rest = ex.type === 'compound' ? 180 : ex.type === 'accessory' ? 120 : 90
-    return t + sets * (40 + rest)
+    return t + setsOf(it.exerciseId) * (40 + restSeconds(ex, state.profile))
   }, 0)
   const estMin = Math.max(20, Math.round(estSecs / 60 / 5) * 5)
 

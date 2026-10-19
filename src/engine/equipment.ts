@@ -1,12 +1,23 @@
-import type { Equipment } from '../types'
+import type { Equipment, Exercise } from '../types'
 import { EXERCISES } from '../data/exercises'
+
+/** Equipment tiers in ascending order — each includes everything below. */
+const TIER: Record<Equipment, number> = {
+  none: 0,
+  bodyweight: 1,
+  dumbbell: 2,
+  full: 3
+}
+
+/** Moved with body weight alone (no bar or dumbbell load to track). */
+export function isBodyweight(ex: Exercise): boolean {
+  return ex.equipment === 'bodyweight' || ex.equipment === 'none'
+}
 
 export function canDo(exerciseId: string, equipment: Equipment): boolean {
   const ex = EXERCISES[exerciseId]
   if (!ex) return false
-  if (equipment === 'full') return true
-  if (equipment === 'dumbbell') return ex.equipment !== 'full'
-  return ex.equipment === 'bodyweight'
+  return TIER[ex.equipment] <= (TIER[equipment] ?? TIER.full)
 }
 
 /**

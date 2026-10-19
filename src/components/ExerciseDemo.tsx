@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCoaching, PATTERNS } from '../data/coaching'
+import { getCoaching, getTechnique } from '../data/coaching'
 import { DEMO_MEDIA } from '../data/demoMedia'
 import ExerciseAnimation from './ExerciseAnimation'
 
@@ -33,7 +33,7 @@ export default function ExerciseDemo({
   }, [exerciseId])
 
   const info = getCoaching(exerciseId)
-  const pat = info ? PATTERNS[info.pattern] : null
+  const pat = getTechnique(exerciseId)
   const frames = DEMO_MEDIA[exerciseId]
   const usePhotos = !!frames && !photoFailed
 
